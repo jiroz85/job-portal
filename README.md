@@ -1,16 +1,132 @@
-# React + Vite
+# 💼 Job Portal
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack job portal platform that connects job seekers, employers, and administrators through a centralized system for job posting, applications, user management, and recruitment workflows.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🔐 User authentication and authorization
+- 👤 Job seeker accounts and profiles
+- 🏢 Employer accounts and job management
+- 💼 Job posting and management
+- 📄 Job application workflow
+- 🔔 Notifications
+- 🛡️ Admin dashboard and user management
+- 📊 Application and recruitment management
+- 🔄 Role-based navigation and access control
+- 📝 Audit functionality
+- 🗄️ Database migrations, models, and seed data
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Frontend
 
-## Expanding the ESLint configuration
+- React
+- Vite
+- JavaScript
+- Tailwind CSS
+- React Router
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Backend
+
+- Node.js
+- Express.js
+- REST API
+- Authentication & authorization
+
+### Database
+
+- Database models and migrations
+- Seeders for development data
+
+## 👥 User Roles
+
+### Job Seekers
+
+- Browse available jobs
+- View job details
+- Apply for positions
+- Manage applications and profile information
+
+### Employers
+
+- Create and manage job postings
+- Review applications
+- Manage recruitment workflows
+
+### Administrators
+
+- Manage users
+- Monitor platform activity
+- Manage application and recruitment data
+- Review audit information
+
+## 📁 Project Structure
+
+```text
+job-portal/
+├── src/
+│   ├── components/
+│   │   ├── admin/
+│   │   ├── auth/
+│   │   ├── employer/
+│   │   ├── user/
+│   │   └── Notifications/
+│   ├── context/
+│   ├── hooks/
+│   ├── pages/
+│   ├── routes/
+│   ├── services/
+│   └── utils/
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── migrations/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   └── seeders/
+│   └── scripts/
+└── public/
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js
+- npm
+- A configured database
+
+### Clone the repository
+
+```bash
+git clone https://github.com/jiroz85/job-portal.git
+cd job-portal
+```
+
+### Backend
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+### Frontend
+
+Open a new terminal:
+
+```bash
+cd job-portal
+npm install
+npm run dev
+```
+
+## 👨‍💻 Author
+
+**Jiregna Meseret Sirna**
+
+- GitHub: https://github.com/jiroz85
+- LinkedIn: https://www.linkedin.com/in/jiregna-meseret
+- Portfolio: https://jiregna-portfolio.vercel.app/
