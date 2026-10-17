@@ -63,6 +63,10 @@ app.use(
       if (allowedOrigins.includes(cleanOrigin)) {
         return callback(null, true);
       }
+      // Allow any Vercel deployment domain (production and preview URLs)
+      if (cleanOrigin.endsWith(".vercel.app")) {
+        return callback(null, true);
+      }
       // Allow any localhost port in development
       if (
         process.env.NODE_ENV !== "production" &&
