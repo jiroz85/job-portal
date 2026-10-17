@@ -55,81 +55,90 @@ async function runAllMigrations() {
     await createResumesTable();
     console.log("  ↳ Resumes table completed.\n");
 
-    // 4. Seed initial essential data if database is fresh
-    const userCount = await User.count();
-    if (userCount === 0) {
-      console.log("Step 4: Fresh database detected. Creating initial essential accounts...");
-      const bcrypt = require("bcryptjs");
-      const adminEmail = (process.env.ADMIN_EMAIL || "admin@example.com").trim().toLowerCase();
-      const adminRawPassword = process.env.ADMIN_PASSWORD || "admin123";
-      const adminName = process.env.ADMIN_NAME || "System Administrator";
+    // 4. Ensure at least one Admin account always exists
+    const bcrypt = require("bcryptjs");
+    const adminEmail = (process.env.ADMIN_EMAIL || "admin@example.com").trim().toLowerCase();
+    const adminRawPassword = process.env.ADMIN_PASSWORD || "admin123";
+    const adminName = process.env.ADMIN_NAME || "System Administrator";
 
-      const adminPass = await bcrypt.hash(adminRawPassword, 10);
-      const userPass = await bcrypt.hash("password123", 10);
+    const adminUser = await User.findOne({ where: { role: "admin" } });
+    if (!adminUser) {
+      console.log("Step 4: No admin user found. Creating primary admin...");
+      const existingUserWithEmail = await User.findOne({ where: { email: adminEmail } });
 
-      const admin = await User.create({
-        name: adminName,
-        email: adminEmail,
-        password: adminPass,
-        role: "admin",
-        status: "active",
-        bio: "Primary system administrator with master permissions.",
-      });
-
-      const employer = await User.create({
-        name: "Tech Corp HR",
-        email: "hr@techcorp.com",
-        password: userPass,
-        role: "employer",
-        status: "active",
-        bio: "Human Resources manager at Tech Corp.",
-      });
-
-      const jobseeker = await User.create({
-        name: "Jane Smith",
-        email: "jane.smith@example.com",
-        password: userPass,
-        role: "jobseeker",
-        status: "active",
-        bio: "Software developer looking for new opportunities.",
-      });
-
-      console.log("  ↳ Initial accounts created: admin@example.com, hr@techcorp.com, jane.smith@example.com");
-
-      const jobCount = await Job.count();
-      if (jobCount === 0) {
-        await Job.bulkCreate([
-          {
-            title: "Frontend Developer",
-            company: "Tech Corp",
-            location: "New York, NY",
-            description: "We are looking for a skilled Frontend Developer to join our team.",
-            requirements: "3+ years of experience with React, JavaScript, and CSS",
-            salary: "$90,000 - $120,000",
-            type: "Full-time",
-            experience: "Mid Level",
-            skills: "React,JavaScript,CSS,HTML",
-            status: "Published",
-            approvalStatus: "approved",
-            employerId: employer.id,
-          },
-          {
-            title: "Backend Developer",
-            company: "Tech Corp",
-            location: "Remote",
-            description: "Looking for a Backend Developer to build robust APIs and services.",
-            requirements: "Experience with Node.js, Express, and databases",
-            salary: "$100,000 - $140,000",
-            type: "Full-time",
-            experience: "Senior Level",
-            skills: "Node.js,Express,SQL,API Development",
-            status: "Published",
-            approvalStatus: "approved",
-            employerId: employer.id,
-          },
-        ]);
-        console.log("  ↳ Initial sample jobs created.\n");
+      if (existingUserWithEmail) {
+        const adminPass = await bcrypt.hash(adminRawPassword, 10);
+        await existingUserWithEmail.update({
+          role: "admin",
+          status: "active",
+          password: adminPass,
+        });
+        console.log(`  ↳ Existing user '${adminEmail}' promoted to primary Admin.\n`);
+      } else {
+        const adminPass = await bcrypt.hash(adminRawPassword, 10);
+        await User.create({
+          name: adminName,
+          email: adminEmail,
+          password: adminPass,
+          role: "admin",
+          status: "active",
+          bio: "Primary system administrator with master permissions.",
+        });
+        console.log(`  ↳ Primary admin created: '${adminEmail}'.\n`);
       }
+    } else {
+      console.log(`Step 4: Admin account verified (${adminUser.email}).\n`);
+    }
+
+    // 5. Ensure sample jobs exist if jobs table is empty
+    const jobCount = await Job.count();
+    if (jobCount === 0) {
+      console.log("Step 5: No jobs found. Creating initial sample jobs...");
+      // Find or create an employer for sample jobs
+      let employer = await User.findOne({ where: { role: "employer" } });
+      if (!employer) {
+        const userPass = await bcrypt.hash("password123", 10);
+        employer = await User.create({
+          name: "Tech Corp HR",
+          email: "hr@techcorp.com",
+          password: userPass,
+          role: "employer",
+          status: "active",
+          bio: "Human Resources manager at Tech Corp.",
+        });
+      }
+
+      await Job.bulkCreate([
+        {
+          title: "Frontend Developer",
+          company: "Tech Corp",
+          location: "New York, NY",
+          description: "We are looking for a skilled Frontend Developer to join our team.",
+          requirements: "3+ years of experience with React, JavaScript, and CSS",
+          salary: "$90,000 - $120,000",
+          type: "Full-time",
+          experience: "Mid Level",
+          skills: "React,JavaScript,CSS,HTML",
+          status: "Published",
+          approvalStatus: "approved",
+          employerId: employer.id,
+        },
+        {
+          title: "Backend Developer",
+          company: "Tech Corp",
+          location: "Remote",
+          description: "Looking for a Backend Developer to build robust APIs and services.",
+          requirements: "Experience with Node.js, Express, and databases",
+          salary: "$100,000 - $140,000",
+          type: "Full-time",
+          experience: "Senior Level",
+          skills: "Node.js,Express,SQL,API Development",
+          status: "Published",
+          approvalStatus: "approved",
+          employerId: employer.id,
+        },
+      ]);
+      console.log("  ↳ Initial sample jobs created.\n");
     }
 
     console.log("==================================================");
