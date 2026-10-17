@@ -55,25 +55,26 @@ async function runAllMigrations() {
     await createResumesTable();
     console.log("  ↳ Resumes table completed.\n");
 
-    // 4. Ensure at least one Admin account always exists
-    const bcrypt = require("bcryptjs");
-    const adminEmail = (process.env.ADMIN_EMAIL || "admin@example.com").trim().toLowerCase();
-    const adminRawPassword = process.env.ADMIN_PASSWORD || "admin123";
-    const adminName = process.env.ADMIN_NAME || "System Administrator";
-
+    // 4. Admin Account Verification (No hardcoded default admin)
     const adminUser = await User.findOne({ where: { role: "admin" } });
-    if (!adminUser) {
-      console.log("Step 4: No admin user found. Creating primary admin...");
-      const existingUserWithEmail = await User.findOne({ where: { email: adminEmail } });
+    if (adminUser) {
+      console.log(`Step 4: Primary admin account verified (${adminUser.email}).\n`);
+      // If a real admin exists, remove the placeholder admin@example.com if present
+      if (adminUser.email !== "admin@example.com") {
+        await User.destroy({ where: { email: "admin@example.com" } });
+        console.log("  ↳ Removed placeholder admin@example.com.\n");
+      }
+    } else if (process.env.ADMIN_EMAIL) {
+      // Only bootstrap admin if explicitly configured via environment variable
+      const bcrypt = require("bcryptjs");
+      const adminEmail = process.env.ADMIN_EMAIL.trim().toLowerCase();
+      const adminRawPassword = process.env.ADMIN_PASSWORD || "password123";
+      const adminName = process.env.ADMIN_NAME || "System Administrator";
 
-      if (existingUserWithEmail) {
-        const adminPass = await bcrypt.hash(adminRawPassword, 10);
-        await existingUserWithEmail.update({
-          role: "admin",
-          status: "active",
-          password: adminPass,
-        });
-        console.log(`  ↳ Existing user '${adminEmail}' promoted to primary Admin.\n`);
+      const existingUser = await User.findOne({ where: { email: adminEmail } });
+      if (existingUser) {
+        await existingUser.update({ role: "admin", status: "active" });
+        console.log(`  ↳ User '${adminEmail}' assigned Admin role.\n`);
       } else {
         const adminPass = await bcrypt.hash(adminRawPassword, 10);
         await User.create({
@@ -82,12 +83,11 @@ async function runAllMigrations() {
           password: adminPass,
           role: "admin",
           status: "active",
-          bio: "Primary system administrator with master permissions.",
         });
-        console.log(`  ↳ Primary admin created: '${adminEmail}'.\n`);
+        console.log(`  ↳ Admin created from ADMIN_EMAIL: '${adminEmail}'.\n`);
       }
     } else {
-      console.log(`Step 4: Admin account verified (${adminUser.email}).\n`);
+      console.log("Step 4: No admin user configured via environment.\n");
     }
 
     // 5. Ensure sample jobs exist if jobs table is empty
