@@ -60,16 +60,20 @@ async function runAllMigrations() {
     if (userCount === 0) {
       console.log("Step 4: Fresh database detected. Creating initial essential accounts...");
       const bcrypt = require("bcryptjs");
-      const adminPass = await bcrypt.hash("admin123", 10);
+      const adminEmail = (process.env.ADMIN_EMAIL || "admin@example.com").trim().toLowerCase();
+      const adminRawPassword = process.env.ADMIN_PASSWORD || "admin123";
+      const adminName = process.env.ADMIN_NAME || "System Administrator";
+
+      const adminPass = await bcrypt.hash(adminRawPassword, 10);
       const userPass = await bcrypt.hash("password123", 10);
 
       const admin = await User.create({
-        name: "Admin User",
-        email: "admin@example.com",
+        name: adminName,
+        email: adminEmail,
         password: adminPass,
         role: "admin",
         status: "active",
-        bio: "System administrator with full access to all features.",
+        bio: "Primary system administrator with master permissions.",
       });
 
       const employer = await User.create({
