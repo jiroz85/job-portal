@@ -4,6 +4,19 @@ async function addJobEmployerOwnership() {
   try {
     console.log("Adding employerId ownership column to jobs table...");
 
+    // Check if table exists
+    const [tables] = await sequelize.query(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'jobs';
+    `);
+
+    if (tables.length === 0) {
+      console.log("ℹ️ Table 'jobs' does not exist yet. Skipping column migration.");
+      return;
+    }
+
     // Check if column already exists
     const [columns] = await sequelize.query(`
       SELECT COLUMN_NAME 

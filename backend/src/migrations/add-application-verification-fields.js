@@ -4,6 +4,19 @@ async function addApplicationVerificationFields() {
   try {
     console.log("Checking verification fields for applications table...");
 
+    // Check if table exists
+    const [tables] = await sequelize.query(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'applications';
+    `);
+
+    if (tables.length === 0) {
+      console.log("ℹ️ Table 'applications' does not exist yet. Skipping column migration.");
+      return;
+    }
+
     // Retrieve existing columns on applications table
     const [existingColumns] = await sequelize.query(`
       SELECT COLUMN_NAME 

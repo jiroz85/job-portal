@@ -6,9 +6,23 @@
 
 require("dotenv").config();
 const { sequelize } = require("../config/database");
+const User = require("../models/User");
+const Job = require("../models/Job");
+const Application = require("../models/Application");
+const Audit = require("../models/Audit");
+const Resume = require("../models/Resume");
 const addApplicationVerificationFields = require("../migrations/add-application-verification-fields");
 const addJobEmployerOwnership = require("../migrations/add-job-employer-ownership");
 const createResumesTable = require("../migrations/create-resumes-table");
+
+// Setup associations
+const setupAssociations = () => {
+  User.associate({ Application, Audit, Job, Resume });
+  Application.associate({ User, Job });
+  Job.associate({ Application, User });
+  Audit.associate({ User });
+  Resume.associate({ User });
+};
 
 async function runAllMigrations() {
   console.log("==================================================");
@@ -19,6 +33,12 @@ async function runAllMigrations() {
     // Verify connection first
     await sequelize.authenticate();
     console.log("✅ Database connection established.\n");
+
+    // Ensure base tables exist
+    console.log("Step 0/3: Synchronizing base models...");
+    setupAssociations();
+    await sequelize.sync();
+    console.log("  ↳ Base tables created or verified.\n");
 
     // 1. Application verification fields
     console.log("Step 1/3: Running verification fields migration...");
