@@ -1,807 +1,626 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FaSearch,
-  FaBriefcase,
-  FaBuilding,
   FaMapMarkerAlt,
+  FaBriefcase,
+  FaArrowRight,
+  FaBuilding,
+  FaCheckCircle,
+  FaShieldAlt,
+  FaUserCheck,
   FaClock,
-  FaDollarSign,
+  FaLaptopCode,
+  FaPaintBrush,
+  FaChartLine,
+  FaHandshake,
+  FaMoneyBillWave,
+  FaHospitalUser,
+  FaHeadset,
+  FaCogs,
+  FaRedo,
 } from "react-icons/fa";
 import { useJobs } from "../context/JobContext";
+import useAuth from "../hooks/useAuth";
+import JobCard from "../components/jobs/JobCard";
+import JobSkeleton from "../components/jobs/JobSkeleton";
+
+const CATEGORIES_CONFIG = [
+  {
+    id: "software",
+    name: "Software & Tech",
+    slug: "Software",
+    keywords: ["software", "developer", "engineer", "frontend", "backend", "fullstack", "react", "node", "python", "tech", "web"],
+    icon: FaLaptopCode,
+    color: "text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-400",
+  },
+  {
+    id: "design",
+    name: "Product & Design",
+    slug: "Design",
+    keywords: ["design", "ui", "ux", "product design", "figma", "graphic", "creative"],
+    icon: FaPaintBrush,
+    color: "text-purple-600 bg-purple-50 dark:bg-purple-950/50 dark:text-purple-400",
+  },
+  {
+    id: "marketing",
+    name: "Marketing & Growth",
+    slug: "Marketing",
+    keywords: ["marketing", "seo", "content", "growth", "social media", "brand", "digital"],
+    icon: FaChartLine,
+    color: "text-pink-600 bg-pink-50 dark:bg-pink-950/50 dark:text-pink-400",
+  },
+  {
+    id: "sales",
+    name: "Sales & Business",
+    slug: "Sales",
+    keywords: ["sales", "account", "business development", "b2b", "revenue"],
+    icon: FaHandshake,
+    color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400",
+  },
+  {
+    id: "finance",
+    name: "Finance & Accounting",
+    slug: "Finance",
+    keywords: ["finance", "accounting", "auditor", "analyst", "financial", "tax"],
+    icon: FaMoneyBillWave,
+    color: "text-amber-600 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400",
+  },
+  {
+    id: "healthcare",
+    name: "Healthcare & Science",
+    slug: "Healthcare",
+    keywords: ["health", "nurse", "medical", "doctor", "clinical", "hospital", "pharma"],
+    icon: FaHospitalUser,
+    color: "text-rose-600 bg-rose-50 dark:bg-rose-950/50 dark:text-rose-400",
+  },
+  {
+    id: "support",
+    name: "Customer Support",
+    slug: "Support",
+    keywords: ["support", "customer service", "help desk", "client success", "representative"],
+    icon: FaHeadset,
+    color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950/50 dark:text-cyan-400",
+  },
+  {
+    id: "operations",
+    name: "Operations & HR",
+    slug: "Operations",
+    keywords: ["operation", "operations", "hr", "human resources", "recruiter", "logistics", "management"],
+    icon: FaCogs,
+    color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 dark:text-indigo-400",
+  },
+];
+
+const QUICK_TAGS = [
+  { label: "Remote", type: "type", value: "Remote" },
+  { label: "Full-time", type: "type", value: "Full-time" },
+  { label: "Engineering", type: "category", value: "Software" },
+  { label: "Design", type: "category", value: "Design" },
+  { label: "Marketing", type: "category", value: "Marketing" },
+];
 
 const HomePage = () => {
-  const { getPublishedJobs } = useJobs();
+  const { getPublishedJobs, loading, error, fetchJobs } = useJobs();
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+
+  const [keyword, setKeyword] = useState("");
+  const [location, setLocation] = useState("");
+
   const publishedJobs = getPublishedJobs();
-  const recentJobs = publishedJobs.slice(0, 6); // Show latest 6 jobs
+  const recentJobs = publishedJobs.slice(0, 6);
+
+  // Calculate real category counts from actual active jobs
+  const getCategoryCount = (categoryKeywords) => {
+    if (!publishedJobs || publishedJobs.length === 0) return 0;
+    return publishedJobs.filter((job) => {
+      const textToSearch = `${job.title || ""} ${job.requirements || ""} ${job.skills || ""} ${job.description || ""}`.toLowerCase();
+      return categoryKeywords.some((kw) => textToSearch.includes(kw));
+    }).length;
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (keyword.trim()) params.set("search", keyword.trim());
+    if (location.trim()) params.set("location", location.trim());
+    navigate(`/jobs?${params.toString()}`);
+  };
+
+  const handleQuickTagClick = (tag) => {
+    const params = new URLSearchParams();
+    params.set(tag.type, tag.value);
+    navigate(`/jobs?${params.toString()}`);
+  };
+
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0 z-0">
-          <div
-            className="w-full h-full bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1600880292203-757bb62b4baf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')`,
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 via-blue-800/80 to-indigo-900/90"></div>
-            <div className="absolute inset-0 bg-black/20"></div>
-          </div>
-        </div>
-
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 z-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 left-1/3 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
-        </div>
-
-        {/* Content */}
-        <div className="relative z-20 container mx-auto px-4 text-center text-white">
-          <div className="max-w-4xl mx-auto">
-            {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm font-medium text-blue-100 mb-6 animate-fade-in">
-              <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
-              Discover 10,000+ Job Opportunities
+    <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
+      {/* 1. HERO SECTION */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-blue-50/60 via-indigo-50/20 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 py-16 sm:py-24 border-b border-gray-100 dark:border-gray-800">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="max-w-3xl mx-auto text-center">
+            {/* Live Availability Pill */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-blue-100/80 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 mb-6 border border-blue-200/60 dark:border-blue-800">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              {loading
+                ? "Connecting to live job registry..."
+                : publishedJobs.length > 0
+                ? `${publishedJobs.length} verified position${publishedJobs.length === 1 ? "" : "s"} open right now`
+                : "Real-time verified recruitment platform"}
             </div>
 
-            {/* Main Heading */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight animate-slide-up">
-              <span className="block bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-                Find Your Dream
-              </span>
-              <span className="block bg-gradient-to-r from-blue-100 to-white bg-clip-text text-transparent">
-                Job Today
+            {/* Primary Headline */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-[1.15] mb-6">
+              Connect with Opportunities That{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
+                Match Your Ambition
               </span>
             </h1>
 
-            {/* Subheading */}
-            <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto text-blue-100 leading-relaxed animate-slide-up delay-200">
-              Discover thousands of job opportunities with all the information
-              you need.
-              <span className="block mt-2 text-white font-medium">
-                It's your future. Come find it.
-              </span>
+            {/* Supporting Copy */}
+            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-10 leading-relaxed max-w-2xl mx-auto">
+              Browse curated positions directly from verified employers. Apply seamlessly with your profile and track every stage in real time.
             </p>
 
-            {/* Enhanced Search Bar */}
-            <div className="max-w-4xl mx-auto bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl p-2 border border-white/20 animate-slide-up delay-400">
-              <div className="flex flex-col lg:flex-row gap-2">
-                <div className="flex-1 flex items-center px-6 py-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 hover:bg-white/20 transition-all duration-300">
-                  <FaSearch className="text-blue-200 mr-3 text-lg" />
+            {/* Functional Search Bar */}
+            <form
+              onSubmit={handleSearchSubmit}
+              className="bg-white dark:bg-gray-800 p-2 sm:p-3 rounded-2xl shadow-xl shadow-blue-900/5 border border-gray-200 dark:border-gray-700 max-w-3xl mx-auto"
+            >
+              <div className="flex flex-col md:flex-row gap-2">
+                {/* Keywords input */}
+                <div className="flex-1 flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                  <FaSearch className="text-gray-400 text-base mr-3 flex-shrink-0" />
                   <input
                     type="text"
-                    placeholder="Job title, keywords, or company"
-                    className="w-full bg-transparent outline-none text-white placeholder-blue-200 text-lg"
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder="Job title, skills, or company"
+                    className="w-full bg-transparent outline-none text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border-none p-0 focus:ring-0"
+                    aria-label="Job title or keywords"
                   />
                 </div>
-                <div className="flex-1 flex items-center px-6 py-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 hover:bg-white/20 transition-all duration-300">
-                  <FaMapMarkerAlt className="text-blue-200 mr-3 text-lg" />
+
+                {/* Location input */}
+                <div className="flex-1 flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                  <FaMapMarkerAlt className="text-gray-400 text-base mr-3 flex-shrink-0" />
                   <input
                     type="text"
-                    placeholder="Location or Remote"
-                    className="w-full bg-transparent outline-none text-white placeholder-blue-200 text-lg"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Location or 'Remote'"
+                    className="w-full bg-transparent outline-none text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border-none p-0 focus:ring-0"
+                    aria-label="Job location"
                   />
                 </div>
-                <button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                  <span className="flex items-center">
-                    <FaSearch className="mr-2" />
-                    Search Jobs
-                  </span>
+
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center px-6 py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-sm transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  <FaSearch className="mr-2 text-xs" />
+                  Search Jobs
                 </button>
               </div>
 
               {/* Quick Search Tags */}
-              <div className="flex flex-wrap gap-2 mt-4 px-2">
-                {["Remote", "Full-time", "Software", "Design", "Marketing"].map(
-                  (tag) => (
-                    <button
-                      key={tag}
-                      className="px-3 py-1 bg-white/10 hover:bg-white/20 text-blue-100 text-sm rounded-full border border-white/20 transition-all duration-200"
-                    >
-                      {tag}
-                    </button>
-                  )
-                )}
+              <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-750 px-2 text-xs text-gray-500 dark:text-gray-400">
+                <span className="font-medium mr-1">Popular:</span>
+                {QUICK_TAGS.map((tag) => (
+                  <button
+                    key={tag.label}
+                    type="button"
+                    onClick={() => handleQuickTagClick(tag)}
+                    className="px-2.5 py-1 rounded-md bg-gray-100 hover:bg-blue-50 hover:text-blue-600 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+                  >
+                    {tag.label}
+                  </button>
+                ))}
               </div>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 animate-fade-in delay-600">
-              {[
-                { number: "10K+", label: "Active Jobs" },
-                { number: "5K+", label: "Companies" },
-                { number: "50K+", label: "Job Seekers" },
-                { number: "95%", label: "Success Rate" },
-              ].map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-white mb-2">
-                    {stat.number}
-                  </div>
-                  <div className="text-blue-200 text-sm md:text-base">
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white/60 rounded-full mt-2 animate-pulse"></div>
+            </form>
           </div>
         </div>
       </section>
 
-      {/* Recent Jobs Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50 relative overflow-hidden">
-        {/* Background Decorations */}
-        <div className="absolute inset-0">
-          <div className="absolute top-10 right-10 w-64 h-64 bg-blue-200/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 left-10 w-80 h-80 bg-purple-200/20 rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-4">
-              <FaBriefcase className="mr-2" />
-              Latest Opportunities
+      {/* 2. VALUE PROPOSITIONS & TRUST (Honest Platform Pillars) */}
+      <section className="py-12 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="flex items-start gap-3.5 p-4 rounded-xl bg-gray-50/70 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300 flex items-center justify-center flex-shrink-0">
+                <FaShieldAlt className="text-lg" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5">
+                  Verified Openings
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  Direct postings from vetted hiring teams and organizations.
+                </p>
+              </div>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-blue-600 bg-clip-text text-transparent">
-              Recent Job Postings
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-              Discover the latest career opportunities from top companies
-              worldwide
-            </p>
+
+            <div className="flex items-start gap-3.5 p-4 rounded-xl bg-gray-50/70 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300 flex items-center justify-center flex-shrink-0">
+                <FaUserCheck className="text-lg" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5">
+                  Direct Application
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  No middleman redirections; submit your resume straight to recruiters.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3.5 p-4 rounded-xl bg-gray-50/70 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <div className="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300 flex items-center justify-center flex-shrink-0">
+                <FaClock className="text-lg" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5">
+                  Real-Time Status
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  Track when your resume is reviewed, shortlisted, or invited.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3.5 p-4 rounded-xl bg-gray-50/70 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 flex items-center justify-center flex-shrink-0">
+                <FaBuilding className="text-lg" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5">
+                  Dedicated Dashboards
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  Tailored workspaces for candidates, hiring managers, and admins.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. FEATURED / RECENT JOBS SECTION */}
+      <section className="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900/50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-10">
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2">
+                <FaBriefcase className="text-xs" />
+                <span>Current Opportunities</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">
+                Featured & Recent Postings
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Explore the latest published positions across industries.
+              </p>
+            </div>
+
             <Link
               to="/jobs"
-              className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 group"
             >
-              View All Jobs
-              <svg
-                className="w-5 h-5 ml-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 8l4 4m0 0l-4 4m4-4H3"
-                />
-              </svg>
+              <span>View all openings ({publishedJobs.length})</span>
+              <FaArrowRight className="text-xs group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {recentJobs.length > 0 ? (
-              recentJobs.map((job, index) => (
-                <Link
-                  key={job.id}
-                  to={`/jobs/${job.id}`}
-                  className="group block bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden border border-gray-100"
-                  style={{
-                    animationDelay: `${index * 100}ms`,
-                  }}
-                >
-                  {/* Card Header */}
-                  <div className="relative h-2 bg-gradient-to-r from-blue-500 to-purple-500"></div>
-
-                  <div className="p-8">
-                    {/* Company Logo Placeholder */}
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                      <FaBuilding className="text-2xl text-blue-600" />
-                    </div>
-
-                    {/* Job Title and Company */}
-                    <div className="mb-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-300">
-                        {job.title}
-                      </h3>
-                      <p className="text-gray-600 font-medium flex items-center">
-                        <FaBuilding className="mr-2 text-gray-400" />
-                        {job.company}
-                      </p>
-                    </div>
-
-                    {/* Job Details */}
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-center text-gray-500 hover:text-blue-600 transition-colors duration-300">
-                        <FaMapMarkerAlt className="mr-3 text-gray-400" />
-                        <span className="font-medium">{job.location}</span>
-                      </div>
-                      <div className="flex items-center text-gray-500 hover:text-blue-600 transition-colors duration-300">
-                        <FaBriefcase className="mr-3 text-gray-400" />
-                        <span className="font-medium">{job.type}</span>
-                      </div>
-                      {job.salary && (
-                        <div className="flex items-center text-gray-500 hover:text-green-600 transition-colors duration-300">
-                          <FaDollarSign className="mr-3 text-gray-400" />
-                          <span className="font-medium text-green-600">
-                            {job.salary}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center text-gray-500">
-                        <FaClock className="mr-3 text-gray-400" />
-                        <span className="font-medium">
-                          {job.posted || "Recently posted"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Apply Button */}
-                    <div className="mt-6 pt-6 border-t border-gray-100">
-                      <button className="w-full py-3 px-4 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 text-blue-600 font-semibold rounded-xl transition-all duration-300 group-hover:shadow-md">
-                        View Details →
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Hover Effect Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                </Link>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-20">
-                <div className="max-w-md mx-auto">
-                  <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <FaBriefcase className="text-4xl text-blue-600" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                    No jobs posted yet
-                  </h3>
-                  <p className="text-gray-600 mb-8 text-lg">
-                    Be the first to post a job opportunity and connect with
-                    talented professionals!
-                  </p>
-                  <Link
-                    to="/admin/add-job"
-                    className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-                  >
-                    <svg
-                      className="w-5 h-5 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                    Post a Job
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Categories Section */}
-      <section className="py-20 bg-white relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }}
-          ></div>
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium mb-4">
-              <FaBriefcase className="mr-2" />
-              Explore by Category
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-purple-600 bg-clip-text text-transparent">
-              Popular Categories
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Browse job opportunities by industry and find your perfect career
-              match
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[
-              {
-                title: "Software Development",
-                count: 1243,
-                icon: "💻",
-                color: "from-blue-500 to-blue-600",
-              },
-              {
-                title: "Marketing",
-                count: 845,
-                icon: "📱",
-                color: "from-pink-500 to-pink-600",
-              },
-              {
-                title: "Design",
-                count: 721,
-                icon: "🎨",
-                color: "from-purple-500 to-purple-600",
-              },
-              {
-                title: "Sales",
-                count: 563,
-                icon: "📈",
-                color: "from-green-500 to-green-600",
-              },
-              {
-                title: "Healthcare",
-                count: 459,
-                icon: "🏥",
-                color: "from-red-500 to-red-600",
-              },
-              {
-                title: "Finance",
-                count: 342,
-                icon: "💰",
-                color: "from-yellow-500 to-yellow-600",
-              },
-              {
-                title: "Education",
-                count: 287,
-                icon: "📚",
-                color: "from-indigo-500 to-indigo-600",
-              },
-              {
-                title: "Customer Service",
-                count: 198,
-                icon: "🎧",
-                color: "from-teal-500 to-teal-600",
-              },
-            ].map((category, index) => (
-              <div
-                key={index}
-                className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden border border-gray-100 cursor-pointer"
-                style={{
-                  animationDelay: `${index * 100}ms`,
-                }}
-              >
-                {/* Gradient Border */}
-                <div
-                  className={`absolute inset-0 bg-gradient-to-r ${category.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
-                ></div>
-
-                {/* Content */}
-                <div className="relative p-8 bg-white rounded-2xl">
-                  {/* Icon */}
-                  <div
-                    className={`w-16 h-16 bg-gradient-to-br ${category.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <span className="text-2xl">{category.icon}</span>
-                  </div>
-
-                  {/* Category Info */}
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-300">
-                    {category.title}
-                  </h3>
-                  <p className="text-gray-600 font-medium mb-4">
-                    {category.count.toLocaleString()} jobs available
-                  </p>
-
-                  {/* Arrow */}
-                  <div className="flex items-center text-gray-400 group-hover:text-transparent transition-colors duration-300">
-                    <span className="text-sm font-medium">Explore</span>
-                    <svg
-                      className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform duration-300"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Hover Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/50 to-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-              </div>
-            ))}
-          </div>
-
-          {/* View All Categories Button */}
-          <div className="text-center mt-12">
-            <button className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-              View All Categories
-              <svg
-                className="w-5 h-5 ml-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 8l4 4m0 0l-4 4m4-4H3"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100 relative overflow-hidden">
-        {/* Background Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-blue-300/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-indigo-300/20 rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-4">
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-              Quick & Easy Process
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-blue-600 bg-clip-text text-transparent">
-              How It Works
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Get started with your job search in just three simple steps
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {/* Connection Lines */}
-            <div className="hidden md:block absolute top-1/2 left-1/4 right-1/4 h-0.5 bg-gradient-to-r from-blue-300 to-indigo-300 transform -translate-y-1/2"></div>
-
-            {[
-              {
-                step: "01",
-                icon: (
-                  <svg
-                    className="w-8 h-8"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                ),
-                title: "Create an Account",
-                description:
-                  "Sign up for free and create your profile to get started on your career journey.",
-                features: [
-                  "Free registration",
-                  "Professional profile",
-                  "Resume upload",
-                ],
-              },
-              {
-                step: "02",
-                icon: (
-                  <svg
-                    className="w-8 h-8"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                ),
-                title: "Search Jobs",
-                description:
-                  "Browse thousands of job listings to find the perfect match for your skills.",
-                features: ["Advanced filters", "Job alerts", "Save searches"],
-              },
-              {
-                step: "03",
-                icon: (
-                  <svg
-                    className="w-8 h-8"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                ),
-                title: "Apply Now",
-                description:
-                  "Apply to jobs with just one click and track your applications in real-time.",
-                features: [
-                  "One-click apply",
-                  "Application tracking",
-                  "Interview scheduling",
-                ],
-              },
-            ].map((step, index) => (
-              <div
-                key={index}
-                className="relative group"
-                style={{
-                  animationDelay: `${index * 200}ms`,
-                }}
-              >
-                {/* Step Number Badge */}
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    {step.step}
-                  </div>
-                </div>
-
-                {/* Card */}
-                <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 p-8 pt-16 border border-gray-100 relative overflow-hidden">
-                  {/* Background Gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-                  {/* Icon */}
-                  <div className="relative z-10 w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-300">
-                    <div className="text-blue-600">{step.icon}</div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="relative z-10 text-center">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
-                      {step.title}
-                    </h3>
-                    <p className="text-gray-600 mb-6 leading-relaxed">
-                      {step.description}
-                    </p>
-
-                    {/* Features */}
-                    <ul className="space-y-2 text-sm">
-                      {step.features.map((feature, featureIndex) => (
-                        <li
-                          key={featureIndex}
-                          className="flex items-center justify-center text-gray-500"
-                        >
-                          <svg
-                            className="w-4 h-4 mr-2 text-green-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Hover Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Get Started Button */}
-          <div className="text-center mt-16">
-            <Link
-              to="/register"
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-            >
-              Get Started Now
-              <svg
-                className="w-5 h-5 ml-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 8l4 4m0 0l-4 4m4-4H3"
-                />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="relative py-24 overflow-hidden">
-        {/* Background with Gradient and Image */}
-        <div className="absolute inset-0">
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80')`,
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-900/95 via-blue-800/90 to-indigo-900/95"></div>
-          </div>
-        </div>
-
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-10 left-10 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-10 right-10 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-indigo-400/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
-        </div>
-
-        <div className="relative z-10 container mx-auto px-4 text-center text-white">
-          <div className="max-w-4xl mx-auto">
-            {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm font-medium mb-6">
-              <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
-              Join Our Community Today
-            </div>
-
-            {/* Main Heading */}
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              <span className="block bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-                Ready to Find Your
-              </span>
-              <span className="block bg-gradient-to-r from-blue-100 to-white bg-clip-text text-transparent">
-                Dream Job?
-              </span>
-            </h2>
-
-            {/* Subheading */}
-            <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto text-blue-100 leading-relaxed">
-              Join thousands of companies and job seekers already using our
-              platform to
-              <span className="block mt-2 text-white font-medium">
-                make meaningful career connections.
-              </span>
-            </p>
-
-            {/* Stats Row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-              {[
-                { number: "50K+", label: "Active Users" },
-                { number: "1000+", label: "Companies" },
-                { number: "10K+", label: "Jobs Posted" },
-                { number: "5000+", label: "Hires Made" },
-              ].map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-white mb-2">
-                    {stat.number}
-                  </div>
-                  <div className="text-blue-200 text-sm md:text-base">
-                    {stat.label}
-                  </div>
-                </div>
+          {/* Jobs Listing Grid / Skeletons / Empty / Error State */}
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <JobSkeleton key={i} />
               ))}
             </div>
+          ) : error ? (
+            <div className="p-8 text-center bg-white dark:bg-gray-800 rounded-2xl border border-red-200 dark:border-red-900/50 max-w-lg mx-auto shadow-sm">
+              <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-4">
+                {error}
+              </p>
+              <button
+                type="button"
+                onClick={fetchJobs}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 transition-colors"
+              >
+                <FaRedo className="text-xs" />
+                <span>Retry loading jobs</span>
+              </button>
+            </div>
+          ) : recentJobs.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentJobs.map((job) => (
+                <JobCard key={job.id} job={job} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 px-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 max-w-xl mx-auto shadow-sm">
+              <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-4">
+                <FaBriefcase className="text-2xl" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                No active job postings right now
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+                Be among the first employers to reach qualified candidates, or check back soon for fresh openings.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  to={isAuthenticated && user?.role === "employer" ? "/employer/post-job" : "/register"}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm transition-colors"
+                >
+                  Post a Position
+                </Link>
+                <Link
+                  to="/jobs"
+                  className="px-5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium transition-colors"
+                >
+                  Browse Job Catalog
+                </Link>
+              </div>
+            </div>
+          )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-center gap-6 mb-8">
+          {recentJobs.length > 0 && (
+            <div className="text-center mt-12">
               <Link
                 to="/jobs"
-                className="group inline-flex items-center justify-center px-10 py-4 bg-white text-blue-600 hover:bg-blue-50 font-bold text-lg rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-900 dark:text-white font-semibold text-sm border border-gray-200 dark:border-gray-700 shadow-sm transition-colors"
               >
-                <svg
-                  className="w-6 h-6 mr-3 group-hover:animate-bounce"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                Browse Jobs
-                <svg
-                  className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform duration-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 8l4 4m0 0l-4 4m4-4H3"
-                  />
-                </svg>
+                <span>Browse all {publishedJobs.length} available jobs</span>
+                <FaArrowRight className="text-xs text-blue-600" />
               </Link>
             </div>
+          )}
+        </div>
+      </section>
 
-            {/* Trust Indicators */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-blue-200">
-              <div className="flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2 text-green-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+      {/* 4. CATEGORIES SECTION (Clickable + Real dynamic counts) */}
+      <section className="py-16 sm:py-20 bg-white dark:bg-gray-900">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+              Targeted Discovery
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mt-1">
+              Explore Roles by Category
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              Navigate jobs matching your functional area of expertise.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {CATEGORIES_CONFIG.map((category) => {
+              const count = getCategoryCount(category.keywords);
+              const Icon = category.icon;
+
+              return (
+                <Link
+                  key={category.id}
+                  to={`/jobs?category=${encodeURIComponent(category.slug)}`}
+                  className="group relative p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span className="text-sm">Free to Use</span>
+                  <div>
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-105 ${category.color}`}
+                    >
+                      <Icon className="text-xl" />
+                    </div>
+
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-1">
+                      {category.name}
+                    </h3>
+
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {count > 0 ? (
+                        <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                          {count} open role{count === 1 ? "" : "s"}
+                        </span>
+                      ) : (
+                        <span>Explore category</span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between text-xs font-medium text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <span>View listings</span>
+                    <FaArrowRight className="text-[10px] group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. HOW IT WORKS (Audience-specific workflows) */}
+      <section className="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900/60 border-t border-b border-gray-200 dark:border-gray-800">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+              Simple & Transparent
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mt-1">
+              How the Platform Works
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              Designed to connect candidates and hiring managers with zero friction.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-5xl mx-auto">
+            {/* For Candidates */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 shadow-sm">
+              <div className="inline-block px-3 py-1 rounded-md text-xs font-bold uppercase bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 mb-4">
+                For Job Seekers
               </div>
-              <div className="flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2 text-green-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  />
-                </svg>
-                <span className="text-sm">Secure Platform</span>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                Fast-track your job search
+              </h3>
+
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold text-sm flex items-center justify-center flex-shrink-0 border border-blue-200 dark:border-blue-800">
+                    1
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                      Build Your Profile & Resume
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
+                      Create an account, upload your credentials, and maintain your primary resume in one secure hub.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold text-sm flex items-center justify-center flex-shrink-0 border border-blue-200 dark:border-blue-800">
+                    2
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                      Filter by Skills & Modality
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
+                      Search by remote preference, compensation range, and experience level with instant filter responses.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold text-sm flex items-center justify-center flex-shrink-0 border border-blue-200 dark:border-blue-800">
+                    3
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                      Apply Directly & Monitor Progress
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
+                      Submit applications with one click and track status updates through your candidate dashboard.
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2 text-green-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+
+              <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+                <Link
+                  to="/jobs"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                <span className="text-sm">Quick Setup</span>
+                  <span>Start browsing openings</span>
+                  <FaArrowRight className="text-xs" />
+                </Link>
               </div>
             </div>
+
+            {/* For Employers */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 shadow-sm">
+              <div className="inline-block px-3 py-1 rounded-md text-xs font-bold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200 mb-4">
+                For Employers & Recruiters
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                Hire talent efficiently
+              </h3>
+
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold text-sm flex items-center justify-center flex-shrink-0 border border-emerald-200 dark:border-emerald-800">
+                    1
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                      Publish Vacancies
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
+                      Define responsibilities, salary ranges, and specific skill requirements using structured postings.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold text-sm flex items-center justify-center flex-shrink-0 border border-emerald-200 dark:border-emerald-800">
+                    2
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                      Screen Qualified Applicants
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
+                      Access verified applicant profiles and inspect uploaded resumes within your employer portal.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold text-sm flex items-center justify-center flex-shrink-0 border border-emerald-200 dark:border-emerald-800">
+                    3
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                      Manage Hiring Pipeline
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
+                      Shortlist top candidates, schedule interviews, and issue hiring decisions directly.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+                <Link
+                  to={isAuthenticated && user?.role === "employer" ? "/employer/post-job" : "/register"}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300"
+                >
+                  <span>Post your opening today</span>
+                  <FaArrowRight className="text-xs" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. CALL TO ACTION SECTION */}
+      <section className="py-16 sm:py-20 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-3xl">
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+            Ready to Take Your Next Career Step?
+          </h2>
+          <p className="text-base sm:text-lg text-blue-100 mb-8 max-w-xl mx-auto">
+            Whether you are seeking your next challenge or hiring qualified professionals, start today on JobPortal.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              to="/jobs"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white text-blue-600 hover:bg-blue-50 font-bold text-sm shadow-lg transition-colors"
+            >
+              Browse Open Positions
+            </Link>
+
+            {isAuthenticated ? (
+              <Link
+                to={user?.role === "employer" ? "/employer/post-job" : user?.role === "admin" ? "/admin" : "/dashboard"}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-blue-500/30 hover:bg-blue-500/40 text-white font-semibold text-sm border border-white/20 transition-colors"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <Link
+                to="/register"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-blue-500/30 hover:bg-blue-500/40 text-white font-semibold text-sm border border-white/20 transition-colors"
+              >
+                Create Free Account
+              </Link>
+            )}
           </div>
         </div>
       </section>

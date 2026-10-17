@@ -13,7 +13,6 @@ import {
 
 const EmployerWorkflowDemo = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedApplicant, setSelectedApplicant] = useState(null);
 
   const workflowSteps = [
     {
@@ -66,19 +65,6 @@ const EmployerWorkflowDemo = () => {
       color: "bg-emerald-500",
     },
   ];
-
-  const mockApplicant = {
-    id: 1,
-    name: "John Doe",
-    email: "john.doe@email.com",
-    phone: "+1 234-567-8900",
-    location: "New York, NY",
-    experience: "5 years",
-    skills: ["React", "JavaScript", "Node.js", "CSS", "HTML"],
-    status: "pending",
-    appliedDate: "2024-01-15",
-    coverLetter: "Experienced developer looking for new opportunities...",
-  };
 
   const handleNextStep = () => {
     if (currentStep < workflowSteps.length) {

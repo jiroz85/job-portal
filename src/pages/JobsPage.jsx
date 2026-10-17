@@ -1,62 +1,79 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FaSearch,
   FaMapMarkerAlt,
   FaBriefcase,
-  FaClock,
-  FaDollarSign,
   FaBuilding,
+  FaTimes,
+  FaFilter,
 } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useJobs } from "../context/JobContext";
+import JobCard from "../components/jobs/JobCard";
+import JobSkeleton from "../components/jobs/JobSkeleton";
 
 const JobsPage = () => {
-  const { getPublishedJobs } = useJobs();
+  const { getPublishedJobs, loading, error, fetchJobs } = useJobs();
   const publishedJobs = getPublishedJobs();
-  const [search, setSearch] = useState("");
-  const [location, setLocation] = useState("");
-  const [filters, setFilters] = useState({
-    type: "",
-    experience: "",
-    salary: "",
-    skills: "",
-  });
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Filter published jobs based on search criteria
-  const filteredJobs = publishedJobs.filter((job) => {
-    const matchesSearch =
-      job.title.toLowerCase().includes(search.toLowerCase()) ||
-      job.company.toLowerCase().includes(search.toLowerCase()) ||
-      (job.requirements &&
-        job.requirements.toLowerCase().includes(search.toLowerCase()));
-    const matchesLocation = job.location
-      .toLowerCase()
-      .includes(location.toLowerCase());
-    const matchesType = !filters.type || job.type === filters.type;
-    const matchesExperience =
-      !filters.experience || job.experience === filters.experience;
-    const matchesSalary =
-      !filters.salary || checkSalaryRange(job.salary, filters.salary);
-    const matchesSkills =
-      !filters.skills ||
-      (job.requirements &&
-        job.requirements.toLowerCase().includes(filters.skills.toLowerCase()));
+  // Read state directly from URL query parameters (single source of truth)
+  const search = searchParams.get("search") || searchParams.get("q") || "";
+  const location = searchParams.get("location") || "";
+  const category = searchParams.get("category") || "";
+  const typeFilter = searchParams.get("type") || "";
+  const experienceFilter = searchParams.get("experience") || "";
+  const salaryFilter = searchParams.get("salary") || "";
+  const skillsFilter = searchParams.get("skills") || "";
 
-    return (
-      matchesSearch &&
-      matchesLocation &&
-      matchesType &&
-      matchesExperience &&
-      matchesSalary &&
-      matchesSkills
-    );
-  });
+  // Draft inputs for search form
+  const [searchInput, setSearchInput] = useState(search);
+  const [locationInput, setLocationInput] = useState(location);
+  const [skillsInput, setSkillsInput] = useState(skillsFilter);
+
+  // Sync draft inputs when URL params change from external navigation
+  useEffect(() => {
+    setSearchInput(search);
+    setLocationInput(location);
+    setSkillsInput(skillsFilter);
+  }, [search, location, skillsFilter]);
+
+  const updateParam = (key, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) {
+      next.set(key, value);
+    } else {
+      next.delete(key);
+    }
+    setSearchParams(next);
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const next = new URLSearchParams(searchParams);
+    if (searchInput.trim()) next.set("search", searchInput.trim());
+    else next.delete("search");
+    if (locationInput.trim()) next.set("location", locationInput.trim());
+    else next.delete("location");
+    setSearchParams(next);
+  };
+
+  const handleSkillsSubmit = (e) => {
+    e.preventDefault();
+    updateParam("skills", skillsInput.trim());
+  };
+
+  const clearAllFilters = () => {
+    setSearchInput("");
+    setLocationInput("");
+    setSkillsInput("");
+    setSearchParams(new URLSearchParams());
+  };
 
   // Helper function to check salary range
   const checkSalaryRange = (jobSalary, filterSalary) => {
     if (!jobSalary || !filterSalary) return true;
 
-    // Extract numeric values from salary strings
     const jobSalaryMatch = jobSalary.match(/\$(\d+)k?/g);
     if (!jobSalaryMatch) return true;
 
@@ -75,84 +92,148 @@ const JobsPage = () => {
     return jobMin >= filterMin && jobMax <= filterMax;
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      {/* Hero Section */}
-      <section className="relative py-20 bg-gradient-to-r from-blue-600 to-indigo-700 text-white overflow-hidden">
-        {/* Background Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-10 left-10 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-10 right-10 w-80 h-80 bg-indigo-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        </div>
+  // Filter published jobs based on URL search criteria
+  const filteredJobs = publishedJobs.filter((job) => {
+    const matchesSearch =
+      !search ||
+      (job.title && job.title.toLowerCase().includes(search.toLowerCase())) ||
+      (job.company && job.company.toLowerCase().includes(search.toLowerCase())) ||
+      (job.requirements &&
+        job.requirements.toLowerCase().includes(search.toLowerCase())) ||
+      (job.skills &&
+        job.skills.toLowerCase().includes(search.toLowerCase()));
 
-        <div className="relative z-10 container mx-auto px-4">
+    const matchesLocation =
+      !location ||
+      (job.location &&
+        job.location.toLowerCase().includes(location.toLowerCase()));
+
+    const matchesCategory =
+      !category ||
+      (job.title && job.title.toLowerCase().includes(category.toLowerCase())) ||
+      (job.requirements &&
+        job.requirements.toLowerCase().includes(category.toLowerCase())) ||
+      (job.skills &&
+        job.skills.toLowerCase().includes(category.toLowerCase()));
+
+    const matchesType =
+      !typeFilter ||
+      (job.type && job.type.toLowerCase() === typeFilter.toLowerCase());
+
+    const matchesExperience =
+      !experienceFilter || job.experience === experienceFilter;
+
+    const matchesSalary =
+      !salaryFilter || checkSalaryRange(job.salary, salaryFilter);
+
+    const matchesSkills =
+      !skillsFilter ||
+      (job.skills &&
+        job.skills.toLowerCase().includes(skillsFilter.toLowerCase())) ||
+      (job.requirements &&
+        job.requirements.toLowerCase().includes(skillsFilter.toLowerCase()));
+
+    return (
+      matchesSearch &&
+      matchesLocation &&
+      matchesCategory &&
+      matchesType &&
+      matchesExperience &&
+      matchesSalary &&
+      matchesSkills
+    );
+  });
+
+  const hasActiveFilters = Boolean(
+    search ||
+      location ||
+      category ||
+      typeFilter ||
+      experienceFilter ||
+      salaryFilter ||
+      skillsFilter
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
+      {/* Header & Search Section */}
+      <section className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white py-14">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm font-medium mb-6">
-              <FaBriefcase className="mr-2" />
-              {filteredJobs.length} Job{filteredJobs.length !== 1 ? "s" : ""}{" "}
-              Available
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 backdrop-blur-sm border border-white/20 mb-4">
+              <FaBriefcase className="text-xs" />
+              <span>
+                {loading
+                  ? "Loading positions..."
+                  : `${filteredJobs.length} Job${
+                      filteredJobs.length === 1 ? "" : "s"
+                    } Available`}
+              </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-              <span className="block bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-                Find Your Dream
-              </span>
-              <span className="block bg-gradient-to-r from-blue-100 to-white bg-clip-text text-transparent">
-                Job Today
-              </span>
+
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
+              Explore Active Career Opportunities
             </h1>
-            <p className="text-xl mb-12 max-w-2xl mx-auto text-blue-100">
-              Discover thousands of job opportunities with advanced filtering
-              and search capabilities
+            <p className="text-base sm:text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
+              Find and apply directly to roles with verified organizations.
             </p>
 
-            {/* Enhanced Search Bar */}
-            <div className="max-w-4xl mx-auto bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl p-3 border border-white/20">
-              <div className="flex flex-col lg:flex-row gap-3">
-                <div className="flex-1 flex items-center px-6 py-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 hover:bg-white/20 transition-all duration-300">
-                  <FaSearch className="text-blue-200 mr-3 text-lg" />
+            {/* Search Form */}
+            <form
+              onSubmit={handleSearchSubmit}
+              className="bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-xl border border-white/20 dark:border-gray-700 text-left"
+            >
+              <div className="flex flex-col md:flex-row gap-2">
+                <div className="flex-1 flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <FaSearch className="text-gray-400 mr-3 flex-shrink-0" />
                   <input
                     type="text"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                     placeholder="Job title, company, or keywords"
-                    className="w-full bg-transparent outline-none text-white placeholder-blue-200 text-lg"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full bg-transparent outline-none text-sm text-gray-900 dark:text-white placeholder-gray-500 border-none p-0 focus:ring-0"
+                    aria-label="Search jobs"
                   />
                 </div>
-                <div className="flex-1 flex items-center px-6 py-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 hover:bg-white/20 transition-all duration-300">
-                  <FaMapMarkerAlt className="text-blue-200 mr-3 text-lg" />
+
+                <div className="flex-1 flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <FaMapMarkerAlt className="text-gray-400 mr-3 flex-shrink-0" />
                   <input
                     type="text"
-                    placeholder="Location or Remote"
-                    className="w-full bg-transparent outline-none text-white placeholder-blue-200 text-lg"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    value={locationInput}
+                    onChange={(e) => setLocationInput(e.target.value)}
+                    placeholder="Location or 'Remote'"
+                    className="w-full bg-transparent outline-none text-sm text-gray-900 dark:text-white placeholder-gray-500 border-none p-0 focus:ring-0"
+                    aria-label="Location"
                   />
                 </div>
-                <button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                  <span className="flex items-center">
-                    <FaSearch className="mr-2" />
-                    Search Jobs
-                  </span>
+
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-sm transition-colors whitespace-nowrap"
+                >
+                  Search Jobs
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </section>
 
-      {/* Filters Section */}
-      <section className="py-8 bg-white shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-wrap gap-4 items-center justify-center">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-700">
-                Filters:
-              </span>
+      {/* Filter Controls Bar */}
+      <section className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-4 shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mr-1">
+              <FaFilter className="mr-1.5 text-xs text-blue-600" />
+              <span>Filters:</span>
             </div>
+
+            {/* Type selector */}
             <select
-              className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-              value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+              value={typeFilter}
+              onChange={(e) => updateParam("type", e.target.value)}
+              className="px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Job Types</option>
               <option value="Full-time">Full-time</option>
@@ -162,25 +243,25 @@ const JobsPage = () => {
               <option value="Remote">Remote</option>
             </select>
 
+            {/* Experience selector */}
             <select
-              className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-              value={filters.experience}
-              onChange={(e) =>
-                setFilters({ ...filters, experience: e.target.value })
-              }
+              value={experienceFilter}
+              onChange={(e) => updateParam("experience", e.target.value)}
+              className="px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Experience Levels</option>
               <option value="Entry Level">Entry Level</option>
               <option value="Mid Level">Mid Level</option>
               <option value="Senior Level">Senior Level</option>
+              <option value="Lead">Lead</option>
+              <option value="Manager">Manager</option>
             </select>
 
+            {/* Salary selector */}
             <select
-              className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-              value={filters.salary}
-              onChange={(e) =>
-                setFilters({ ...filters, salary: e.target.value })
-              }
+              value={salaryFilter}
+              onChange={(e) => updateParam("salary", e.target.value)}
+              className="px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Salary Ranges</option>
               <option value="0-50">Under $50k</option>
@@ -191,134 +272,189 @@ const JobsPage = () => {
               <option value="200-999">$200k+</option>
             </select>
 
-            <input
-              type="text"
-              placeholder="Filter by skills (e.g., React, Python)"
-              className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-              value={filters.skills}
-              onChange={(e) =>
-                setFilters({ ...filters, skills: e.target.value })
-              }
-            />
+            {/* Skills mini-form */}
+            <form onSubmit={handleSkillsSubmit} className="flex items-center">
+              <input
+                type="text"
+                value={skillsInput}
+                onChange={(e) => setSkillsInput(e.target.value)}
+                placeholder="Skill (e.g. React)"
+                className="px-3 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-l-lg text-xs text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32 sm:w-40"
+              />
+              <button
+                type="submit"
+                className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-r-lg border border-blue-600"
+              >
+                Apply
+              </button>
+            </form>
           </div>
         </div>
       </section>
 
-      {/* Job Listings */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          {filteredJobs.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredJobs.map((job, index) => (
-                <Link
-                  key={job.id}
-                  to={`/jobs/${job.id}`}
-                  className="group block bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden border border-gray-100"
-                  style={{
-                    animationDelay: `${index * 100}ms`,
-                  }}
+      {/* Active Filter Chips */}
+      {hasActiveFilters && (
+        <section className="bg-gray-100/70 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-700 py-3">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">
+              Active:
+            </span>
+
+            {search && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+                Search: "{search}"
+                <button
+                  type="button"
+                  onClick={() => updateParam("search", "")}
+                  className="hover:opacity-75 focus:outline-none"
+                  aria-label="Remove search filter"
                 >
-                  {/* Card Header */}
-                  <div className="relative h-2 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                  <FaTimes className="text-[10px]" />
+                </button>
+              </span>
+            )}
 
-                  <div className="p-8">
-                    {/* Company Logo Placeholder */}
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                      <FaBriefcase className="text-2xl text-blue-600" />
-                    </div>
+            {location && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+                Location: "{location}"
+                <button
+                  type="button"
+                  onClick={() => updateParam("location", "")}
+                  className="hover:opacity-75 focus:outline-none"
+                  aria-label="Remove location filter"
+                >
+                  <FaTimes className="text-[10px]" />
+                </button>
+              </span>
+            )}
 
-                    {/* Job Title and Company */}
-                    <div className="mb-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-300">
-                        {job.title}
-                      </h3>
-                      <p className="text-gray-600 font-medium flex items-center">
-                        <FaBuilding className="mr-2 text-gray-400" />
-                        {job.company}
-                      </p>
-                    </div>
+            {category && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200">
+                Category: {category}
+                <button
+                  type="button"
+                  onClick={() => updateParam("category", "")}
+                  className="hover:opacity-75 focus:outline-none"
+                  aria-label="Remove category filter"
+                >
+                  <FaTimes className="text-[10px]" />
+                </button>
+              </span>
+            )}
 
-                    {/* Job Details */}
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-center text-gray-500 hover:text-blue-600 transition-colors duration-300">
-                        <FaMapMarkerAlt className="mr-3 text-gray-400" />
-                        <span className="font-medium">{job.location}</span>
-                      </div>
-                      <div className="flex items-center text-gray-500 hover:text-blue-600 transition-colors duration-300">
-                        <FaBriefcase className="mr-3 text-gray-400" />
-                        <span className="font-medium">{job.type}</span>
-                      </div>
-                      {job.salary && (
-                        <div className="flex items-center text-gray-500 hover:text-green-600 transition-colors duration-300">
-                          <FaDollarSign className="mr-3 text-gray-400" />
-                          <span className="font-medium text-green-600">
-                            {job.salary}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center text-gray-500">
-                        <FaClock className="mr-3 text-gray-400" />
-                        <span className="font-medium">
-                          {job.posted || "Recently posted"}
-                        </span>
-                      </div>
-                    </div>
+            {typeFilter && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+                Type: {typeFilter}
+                <button
+                  type="button"
+                  onClick={() => updateParam("type", "")}
+                  className="hover:opacity-75 focus:outline-none"
+                  aria-label="Remove type filter"
+                >
+                  <FaTimes className="text-[10px]" />
+                </button>
+              </span>
+            )}
 
-                    {/* Apply Button */}
-                    <div className="mt-6 pt-6 border-t border-gray-100">
-                      <button className="w-full py-3 px-4 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 text-blue-600 font-semibold rounded-xl transition-all duration-300 group-hover:shadow-md">
-                        View Details →
-                      </button>
-                    </div>
-                  </div>
+            {experienceFilter && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">
+                Experience: {experienceFilter}
+                <button
+                  type="button"
+                  onClick={() => updateParam("experience", "")}
+                  className="hover:opacity-75 focus:outline-none"
+                  aria-label="Remove experience filter"
+                >
+                  <FaTimes className="text-[10px]" />
+                </button>
+              </span>
+            )}
 
-                  {/* Hover Effect Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                </Link>
+            {salaryFilter && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200">
+                Salary: {salaryFilter}
+                <button
+                  type="button"
+                  onClick={() => updateParam("salary", "")}
+                  className="hover:opacity-75 focus:outline-none"
+                  aria-label="Remove salary filter"
+                >
+                  <FaTimes className="text-[10px]" />
+                </button>
+              </span>
+            )}
+
+            {skillsFilter && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900/60 dark:text-cyan-200">
+                Skill: {skillsFilter}
+                <button
+                  type="button"
+                  onClick={() => updateParam("skills", "")}
+                  className="hover:opacity-75 focus:outline-none"
+                  aria-label="Remove skill filter"
+                >
+                  <FaTimes className="text-[10px]" />
+                </button>
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 underline ml-2"
+            >
+              Reset all filters
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Job Listings Grid */}
+      <section className="py-12">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <JobSkeleton key={i} />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl border border-red-200 dark:border-red-900/50 p-8 max-w-md mx-auto shadow-sm">
+              <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-4">
+                {error}
+              </p>
+              <button
+                type="button"
+                onClick={fetchJobs}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Retry Loading
+              </button>
+            </div>
+          ) : filteredJobs.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredJobs.map((job) => (
+                <JobCard key={job.id} job={job} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-20">
-              <div className="max-w-md mx-auto">
-                <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <FaSearch className="text-4xl text-gray-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  No jobs found
-                </h3>
-                <p className="text-gray-600 mb-8 text-lg">
-                  Try adjusting your search or filter criteria to find more
-                  opportunities
-                </p>
-                <button
-                  onClick={() => {
-                    setSearch("");
-                    setLocation("");
-                    setFilters({
-                      type: "",
-                      experience: "",
-                      salary: "",
-                      skills: "",
-                    });
-                  }}
-                  className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-                >
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  Clear Filters
-                </button>
+            <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm max-w-xl mx-auto p-8">
+              <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaSearch className="text-2xl" />
               </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                No matching jobs found
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto text-sm">
+                We couldn't find any positions matching your active filters. Try broadening your keywords or clearing constraints.
+              </p>
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="inline-flex items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition-colors shadow-sm"
+              >
+                Clear all filters
+              </button>
             </div>
           )}
         </div>

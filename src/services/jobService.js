@@ -87,4 +87,23 @@ export const jobService = {
       throw error;
     }
   },
+
+  // Update job status
+  updateJobStatus: async (id, status) => {
+    try {
+      const response = await axios.patch(
+        `${API_BASE_URL}/jobs/${id}/status`,
+        { status },
+        {
+          headers: {
+            ...getAuthHeaders(),
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error updating job status:", error);
+      throw error;
+    }
+  },
 };

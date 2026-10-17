@@ -21,7 +21,13 @@ import UserSettings from "../components/user/UserSettings";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 
 // Employer Routes
+import EmployerLayout from "../pages/employer/EmployerLayout";
 import EmployerDashboard from "../pages/employer/EmployerDashboard";
+import PostJob from "../pages/employer/PostJob";
+import ManageJobs from "../pages/employer/ManageJobs";
+import EditJob from "../pages/employer/EditJob";
+import JobApplicants from "../pages/employer/JobApplicants";
+import ApplicantTracking from "../pages/employer/ApplicantTracking";
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
@@ -83,13 +89,21 @@ const AppRoutes = () => {
 
       {/* Employer Routes */}
       <Route
-        path="/employer/*"
+        path="/employer"
         element={
           <RoleBasedRoute requiredRole="employer">
-            <EmployerDashboard />
+            <EmployerLayout />
           </RoleBasedRoute>
         }
-      />
+      >
+        <Route index element={<EmployerDashboard />} />
+        <Route path="post-job" element={<PostJob />} />
+        <Route path="jobs" element={<ManageJobs />} />
+        <Route path="jobs/:id/edit" element={<EditJob />} />
+        <Route path="jobs/:jobId/applicants" element={<JobApplicants />} />
+        <Route path="applicants" element={<ApplicantTracking />} />
+        <Route path="*" element={<Navigate to="/employer" replace />} />
+      </Route>
 
       {/* Role-based redirects */}
       <Route

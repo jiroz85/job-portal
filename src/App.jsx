@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { AuthProvider } from "./context/AuthContext";
@@ -33,6 +33,7 @@ import EmployerLayout from "./pages/employer/EmployerLayout";
 import EmployerDashboard from "./pages/employer/EmployerDashboard";
 import PostJob from "./pages/employer/PostJob";
 import ManageJobs from "./pages/employer/ManageJobs";
+import EditJob from "./pages/employer/EditJob";
 import JobApplicants from "./pages/employer/JobApplicants";
 import ApplicantTracking from "./pages/employer/ApplicantTracking";
 import InterviewManagement from "./pages/employer/InterviewManagement";
@@ -124,6 +125,7 @@ function App() {
                             <Route index element={<EmployerDashboard />} />
                             <Route path="post-job" element={<PostJob />} />
                             <Route path="jobs" element={<ManageJobs />} />
+                            <Route path="jobs/:id/edit" element={<EditJob />} />
                             <Route
                               path="jobs/:jobId/applicants"
                               element={<JobApplicants />}
@@ -143,6 +145,11 @@ function App() {
                             <Route
                               path="settings"
                               element={<EmployerSettings />}
+                            />
+                            {/* Fallback for unknown /employer/* subroutes */}
+                            <Route
+                              path="*"
+                              element={<Navigate to="/employer" replace />}
                             />
                           </Route>
 
