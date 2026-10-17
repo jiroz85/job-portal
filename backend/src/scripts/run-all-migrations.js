@@ -55,6 +55,79 @@ async function runAllMigrations() {
     await createResumesTable();
     console.log("  ↳ Resumes table completed.\n");
 
+    // 4. Seed initial essential data if database is fresh
+    const userCount = await User.count();
+    if (userCount === 0) {
+      console.log("Step 4: Fresh database detected. Creating initial essential accounts...");
+      const bcrypt = require("bcryptjs");
+      const adminPass = await bcrypt.hash("admin123", 10);
+      const userPass = await bcrypt.hash("password123", 10);
+
+      const admin = await User.create({
+        name: "Admin User",
+        email: "admin@example.com",
+        password: adminPass,
+        role: "admin",
+        status: "active",
+        bio: "System administrator with full access to all features.",
+      });
+
+      const employer = await User.create({
+        name: "Tech Corp HR",
+        email: "hr@techcorp.com",
+        password: userPass,
+        role: "employer",
+        status: "active",
+        bio: "Human Resources manager at Tech Corp.",
+      });
+
+      const jobseeker = await User.create({
+        name: "Jane Smith",
+        email: "jane.smith@example.com",
+        password: userPass,
+        role: "jobseeker",
+        status: "active",
+        bio: "Software developer looking for new opportunities.",
+      });
+
+      console.log("  ↳ Initial accounts created: admin@example.com, hr@techcorp.com, jane.smith@example.com");
+
+      const jobCount = await Job.count();
+      if (jobCount === 0) {
+        await Job.bulkCreate([
+          {
+            title: "Frontend Developer",
+            company: "Tech Corp",
+            location: "New York, NY",
+            description: "We are looking for a skilled Frontend Developer to join our team.",
+            requirements: "3+ years of experience with React, JavaScript, and CSS",
+            salary: "$90,000 - $120,000",
+            type: "Full-time",
+            experience: "Mid Level",
+            skills: "React,JavaScript,CSS,HTML",
+            status: "Published",
+            approvalStatus: "approved",
+            employerId: employer.id,
+          },
+          {
+            title: "Backend Developer",
+            company: "Tech Corp",
+            location: "Remote",
+            description: "Looking for a Backend Developer to build robust APIs and services.",
+            requirements: "Experience with Node.js, Express, and databases",
+            salary: "$100,000 - $140,000",
+            type: "Full-time",
+            experience: "Senior Level",
+            skills: "Node.js,Express,SQL,API Development",
+            status: "Published",
+            approvalStatus: "approved",
+            employerId: employer.id,
+          },
+        ]);
+        console.log("  ↳ Initial sample jobs created.\n");
+      }
+    }
+
     console.log("==================================================");
     console.log("🎉 All migrations completed successfully!");
     console.log("==================================================");
