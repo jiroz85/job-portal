@@ -1,4 +1,14 @@
 require("dotenv").config();
+const { validateJwtSecret } = require("./middleware/auth");
+
+// Fail safely at startup if JWT_SECRET is missing or insecure
+try {
+  validateJwtSecret();
+} catch (err) {
+  console.error("FATAL CONFIGURATION ERROR:", err.message);
+  process.exit(1);
+}
+
 const express = require("express");
 const cors = require("cors");
 const { sequelize, createDatabaseIfNotExists } = require("./config/database");
@@ -7,17 +17,62 @@ const applicationRoutes = require("./routes/applicationRoutes");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
 const auditRoutes = require("./routes/auditRoutes");
+const resumeRoutes = require("./routes/resumeRoutes");
 const Job = require("./models/Job");
 const Application = require("./models/Application");
 const User = require("./models/User");
 const Audit = require("./models/Audit");
+const Resume = require("./models/Resume");
 
 const app = express();
 
-// Middleware
+// Trust reverse proxy (required for Render, Vercel, and rate limiting behind proxies)
+app.set("trust proxy", 1);
+
+// Configure allowed frontend origins (supports local development, Vercel production, and preview URLs)
+const defaultOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000",
+];
+
+const configuredOrigins = [];
+if (process.env.FRONTEND_URL) {
+  process.env.FRONTEND_URL.split(",").forEach((url) => {
+    const trimmed = url.trim().replace(/\/$/, "");
+    if (trimmed) configuredOrigins.push(trimmed);
+  });
+}
+if (process.env.ALLOWED_ORIGINS) {
+  process.env.ALLOWED_ORIGINS.split(",").forEach((url) => {
+    const trimmed = url.trim().replace(/\/$/, "");
+    if (trimmed) configuredOrigins.push(trimmed);
+  });
+}
+
+const allowedOrigins = Array.from(
+  new Set([...defaultOrigins, ...configuredOrigins])
+);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like health checks, server-to-server, curl)
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, "");
+      if (allowedOrigins.includes(cleanOrigin)) {
+        return callback(null, true);
+      }
+      // Allow any localhost port in development
+      if (
+        process.env.NODE_ENV !== "production" &&
+        (cleanOrigin.startsWith("http://localhost:") ||
+          cleanOrigin.startsWith("http://127.0.0.1:"))
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     credentials: true,
   })
 );
@@ -26,17 +81,49 @@ app.use(express.urlencoded({ extended: true }));
 
 // Setup model associations
 const setupAssociations = () => {
-  User.associate({ Application, Audit });
+  User.associate({ Application, Audit, Job, Resume });
   Application.associate({ User, Job });
-  Job.associate({ Application });
+  Job.associate({ Application, User });
   Audit.associate({ User });
+  Resume.associate({ User });
 };
+
+// Health check endpoint for uptime monitoring and deployment verification
+const healthCheckHandler = async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    res.status(200).json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime()),
+      environment: process.env.NODE_ENV || "development",
+      database: "connected",
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: "unhealthy",
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime()),
+      environment: process.env.NODE_ENV || "development",
+      database: "disconnected",
+      error: error.message,
+    });
+  }
+};
+
+app.get("/health", healthCheckHandler);
+app.get("/api/health", healthCheckHandler);
 
 // Initialize database and tables
 const initializeDatabase = async () => {
   try {
-    // Create database if it doesn't exist
-    await createDatabaseIfNotExists();
+    // Only attempt auto-creation in development when explicitly enabled
+    if (
+      process.env.NODE_ENV !== "production" &&
+      process.env.DB_AUTO_CREATE === "true"
+    ) {
+      await createDatabaseIfNotExists();
+    }
 
     // Connect to the database
     await sequelize.authenticate();
@@ -69,6 +156,7 @@ const startServer = async () => {
   app.use("/api/applications", applicationRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/audit", auditRoutes);
+  app.use("/api/resumes", resumeRoutes);
 
   // Base route
   app.get("/", (req, res) => {
@@ -105,6 +193,7 @@ const startServer = async () => {
           getStatistics: "GET /api/users/statistics (admin required)",
           getActivity: "GET /api/users/:id/activity (admin required)",
         },
+        health: "GET /api/health (and GET /health)",
       },
     });
   });

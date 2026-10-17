@@ -91,6 +91,17 @@ const Job = sequelize.define(
       type: DataTypes.ENUM("pending", "approved", "rejected"),
       defaultValue: "approved",
     },
+    employerId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: "users",
+        key: "id",
+      },
+      onUpdate: "CASCADE",
+      onDelete: "SET NULL",
+      comment: "ID of the employer who created the job",
+    },
   },
   {
     timestamps: true,
@@ -103,6 +114,10 @@ Job.associate = (models) => {
   Job.hasMany(models.Application, {
     foreignKey: "jobId",
     as: "applications",
+  });
+  Job.belongsTo(models.User, {
+    foreignKey: "employerId",
+    as: "employer",
   });
 };
 

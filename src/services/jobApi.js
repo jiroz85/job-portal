@@ -1,6 +1,5 @@
 import axios from "axios";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+import { API_BASE_URL } from "../utils/apiConfig";
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -37,6 +36,17 @@ export const jobApi = {
       return response.data;
     } catch (error) {
       console.error("Error fetching jobs:", error);
+      throw error;
+    }
+  },
+
+  // Get jobs created by the authenticated employer
+  getMyJobs: async (params = {}) => {
+    try {
+      const response = await api.get("/jobs/my-jobs", { params });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching my jobs:", error);
       throw error;
     }
   },

@@ -1,8 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const Application = require("../models/Application");
-const Job = require("../models/Job");
+const { getJwtSecret } = require("../middleware/auth");
 
 // Register user
 const register = async (req, res) => {
@@ -19,6 +18,25 @@ const register = async (req, res) => {
       });
     }
 
+    if (typeof password !== "string" || password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must be at least 6 characters long",
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: "Please provide a valid email address",
+      });
+    }
+
+    // Role safety check (only allow self-registering as jobseeker or employer)
+    const allowedRoles = ["jobseeker", "employer"];
+    const assignedRole = allowedRoles.includes(role) ? role : "jobseeker";
+
     // Check if user already exists
     const existingUser = await User.findOne({
       where: { email: normalizedEmail },
@@ -30,86 +48,23 @@ const register = async (req, res) => {
       });
     }
 
-    // Hash password
+    // Hash password with bcrypt
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user
     const user = await User.create({
-      name,
+      name: name.trim(),
       email: normalizedEmail,
       password: hashedPassword,
-      role,
+      role: assignedRole,
+      status: "active",
     });
 
-    // Create sample applications for new job seekers
-    if (role === "jobseeker") {
-      try {
-        const jobs = await Job.findAll({ limit: 3 });
-
-        if (jobs.length > 0) {
-          const sampleApplications = [
-            {
-              jobId: jobs[0].id,
-              applicantName: name,
-              applicantEmail: normalizedEmail,
-              applicantPhone: "+1234567890",
-              coverLetter:
-                "I am very interested in this position and believe my skills match perfectly.",
-              experience: "3 years of experience in the field",
-              education: "Bachelor degree in relevant field",
-              skills: "JavaScript, React, Node.js, Communication",
-              expectedSalary: "$70,000 - $90,000",
-              availability: "2 weeks",
-              status: "pending",
-            },
-            {
-              jobId: jobs[1]?.id || jobs[0].id,
-              applicantName: name,
-              applicantEmail: normalizedEmail,
-              applicantPhone: "+1234567890",
-              coverLetter:
-                "Experienced professional looking for new challenges.",
-              experience: "5 years of professional experience",
-              education: "Master degree in Computer Science",
-              skills: "Python, Django, PostgreSQL, Leadership",
-              expectedSalary: "$80,000 - $100,000",
-              availability: "1 month notice",
-              status: "interview_scheduled",
-            },
-            {
-              jobId: jobs[2]?.id || jobs[0].id,
-              applicantName: name,
-              applicantEmail: normalizedEmail,
-              applicantPhone: "+1234567890",
-              coverLetter: "Senior candidate with strong technical background.",
-              experience: "7 years of experience in software development",
-              education: "PhD in Computer Science",
-              skills: "System Architecture, Cloud, DevOps, Management",
-              expectedSalary: "$120,000 - $140,000",
-              availability: "2 weeks",
-              status: "offered",
-            },
-          ];
-
-          for (const appData of sampleApplications) {
-            await Application.create(appData);
-          }
-
-          console.log(
-            `Created sample applications for new job seeker: ${name}`
-          );
-        }
-      } catch (appError) {
-        console.error("Error creating sample applications:", appError);
-        // Don't fail registration if sample applications fail
-      }
-    }
-
-    // Generate JWT token
+    // Generate JWT token using validated secret
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || "job-portal-secret-key-2024-hp",
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRE || "30d" }
     );
 
@@ -153,11 +108,19 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        error: "Invalid credentials",
+        error: "Invalid email or password",
       });
     }
 
-    // Check password
+    // Check if account is blocked
+    if (user.status === "blocked") {
+      return res.status(403).json({
+        success: false,
+        error: "Your account has been blocked. Please contact support.",
+      });
+    }
+
+    // Verify password using bcrypt only - NO plaintext passwords accepted
     let isMatch = false;
     try {
       isMatch = await bcrypt.compare(password, user.password);
@@ -165,32 +128,20 @@ const login = async (req, res) => {
       isMatch = false;
     }
 
-    // Support legacy/plaintext passwords stored in DB (upgrade on successful login)
-    if (
-      !isMatch &&
-      typeof user.password === "string" &&
-      user.password === password
-    ) {
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-      await user.update({ password: hashedPassword });
-      isMatch = true;
-    }
-
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        error: "Invalid credentials",
+        error: "Invalid email or password",
       });
     }
 
-    // Update last login
+    // Update last login timestamp
     await user.update({ lastLogin: new Date() });
 
-    // Generate JWT token
+    // Generate JWT token using validated secret
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || "job-portal-secret-key-2024-hp",
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRE || "30d" }
     );
 

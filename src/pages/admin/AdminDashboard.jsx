@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import DashboardStats from "../../components/admin/DashboardStats";
+import { API_URL } from "../../utils/apiConfig";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -13,16 +14,11 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       // Get real statistics from API
-      const statsResponse = await fetch(
-        `${
-          import.meta.env.VITE_API_URL || "http://localhost:3001"
-        }/api/users/statistics`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      const statsResponse = await fetch(`${API_URL}/users/statistics`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();

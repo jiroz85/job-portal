@@ -712,7 +712,17 @@ const ApplicantTracking = () => {
                     <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
                       Send Email
                     </button>
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+                    <button
+                      onClick={() => {
+                        const targetId = selectedApplicant?.applicationId || selectedApplicant?.id;
+                        if (targetId) {
+                          applicationService
+                            .downloadResume(targetId, selectedApplicant.name)
+                            .catch((err) => alert(err.message || "Failed to download resume"));
+                        }
+                      }}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                    >
                       Download Resume
                     </button>
                   </div>

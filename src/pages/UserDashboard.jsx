@@ -26,6 +26,7 @@ import { useApplications } from "../context/ApplicationContext";
 import { useJobs } from "../context/JobContext";
 import { useSavedJobs } from "../context/SavedJobsContext";
 import { applicationService } from "../services/applicationService";
+import { resumeService } from "../services/resumeService";
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -40,6 +41,26 @@ const UserDashboard = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [profileCompletion] = useState(75);
   const [realApplications, setRealApplications] = useState([]);
+  const [resumes, setResumes] = useState([]);
+  const [resumesLoading, setResumesLoading] = useState(false);
+
+  const fetchResumes = async () => {
+    try {
+      setResumesLoading(true);
+      const response = await resumeService.getMyResumes();
+      if (response.success) {
+        setResumes(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching resumes:", error);
+    } finally {
+      setResumesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchResumes();
+  }, []);
 
   // Fetch real applications from backend
   useEffect(() => {
@@ -181,23 +202,6 @@ const UserDashboard = () => {
     },
   ];
 
-  const mockResumes = [
-    {
-      id: 1,
-      name: "John_Doe_Resume_2024.pdf",
-      uploadedDate: "2024-01-10",
-      size: "245 KB",
-      isDefault: true,
-    },
-    {
-      id: 2,
-      name: "John_Doe_Tech_Resume.pdf",
-      uploadedDate: "2024-01-05",
-      size: "198 KB",
-      isDefault: false,
-    },
-  ];
-
   const getStatusColor = (status) => {
     switch (status) {
       case "pending":
@@ -297,11 +301,57 @@ const UserDashboard = () => {
     }
   };
 
-  const handleUploadResume = (event) => {
+  const handleUploadResume = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      // In a real app, this would upload to server
-      console.log("Uploading resume:", file.name);
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size exceeds 5 MB limit. Please select a smaller PDF or DOCX file.");
+        event.target.value = "";
+        return;
+      }
+      try {
+        const response = await resumeService.uploadResume(file);
+        if (response.success) {
+          alert("Resume uploaded successfully!");
+          fetchResumes();
+        }
+      } catch (err) {
+        alert(`Error uploading resume: ${err.message}`);
+      } finally {
+        event.target.value = "";
+      }
+    }
+  };
+
+  const handleSetDefaultResume = async (id) => {
+    try {
+      const response = await resumeService.setDefaultResume(id);
+      if (response.success) {
+        fetchResumes();
+      }
+    } catch (err) {
+      alert(`Error setting default resume: ${err.message}`);
+    }
+  };
+
+  const handleDownloadResume = async (id, name) => {
+    try {
+      await resumeService.downloadResume(id, name);
+    } catch (err) {
+      alert(`Error downloading resume: ${err.message}`);
+    }
+  };
+
+  const handleDeleteResume = async (id) => {
+    if (window.confirm("Are you sure you want to delete this resume?")) {
+      try {
+        const response = await resumeService.deleteResume(id);
+        if (response.success) {
+          fetchResumes();
+        }
+      } catch (err) {
+        alert(`Error deleting resume: ${err.message}`);
+      }
     }
   };
 
@@ -936,44 +986,67 @@ const UserDashboard = () => {
                 </label>
               </div>
               <div className="divide-y divide-gray-200">
-                {mockResumes.map((resume) => (
-                  <div key={resume.id} className="px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <FiFileText className="h-8 w-8 text-gray-400 mr-3" />
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">
-                            {resume.name}
-                          </h3>
-                          <div className="flex items-center mt-1 text-sm text-gray-500">
-                            <FiCalendar className="h-3 w-3 mr-1" />
-                            {new Date(resume.uploadedDate).toLocaleDateString()}
-                            <span className="mx-2">•</span>
-                            {resume.size}
-                            {resume.isDefault && (
-                              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                Default
-                              </span>
-                            )}
+                {resumesLoading ? (
+                  <div className="px-6 py-8 text-center text-gray-500">
+                    Loading your resumes...
+                  </div>
+                ) : resumes.length === 0 ? (
+                  <div className="px-6 py-8 text-center text-gray-500">
+                    <FiFileText className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                    <p className="font-medium">No resumes uploaded yet</p>
+                    <p className="text-sm mt-1">Upload a PDF or DOCX file to use when applying for jobs.</p>
+                  </div>
+                ) : (
+                  resumes.map((resume) => (
+                    <div key={resume.id} className="px-6 py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <FiFileText className="h-8 w-8 text-blue-500 mr-3" />
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-900">
+                              {resume.name}
+                            </h3>
+                            <div className="flex items-center mt-1 text-sm text-gray-500">
+                              <FiCalendar className="h-3 w-3 mr-1" />
+                              {new Date(resume.uploadedDate).toLocaleDateString()}
+                              <span className="mx-2">•</span>
+                              {resume.size}
+                              {resume.isDefault && (
+                                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  Default
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        {!resume.isDefault && (
-                          <button className="text-blue-600 hover:text-blue-800 text-sm">
-                            Set as Default
+                        <div className="flex items-center space-x-3">
+                          {!resume.isDefault && (
+                            <button
+                              onClick={() => handleSetDefaultResume(resume.id)}
+                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            >
+                              Set as Default
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDownloadResume(resume.id, resume.name)}
+                            title="Download resume"
+                            className="text-gray-600 hover:text-blue-600 p-1"
+                          >
+                            <FiDownload className="h-4 w-4" />
                           </button>
-                        )}
-                        <button className="text-gray-600 hover:text-gray-800">
-                          <FiDownload className="h-4 w-4" />
-                        </button>
-                        <button className="text-red-600 hover:text-red-800">
-                          <FiXCircle className="h-4 w-4" />
-                        </button>
+                          <button
+                            onClick={() => handleDeleteResume(resume.id)}
+                            title="Delete resume"
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <FiXCircle className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 

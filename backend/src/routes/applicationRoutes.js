@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { authenticateToken, authorize } = require("../middleware/auth");
+const { handleUpload } = require("../middleware/upload");
 const {
   getApplications,
   getApplication,
@@ -9,13 +10,20 @@ const {
   deleteApplication,
   getApplicationsByEmail,
   verifyEmail,
+  downloadApplicationResume,
 } = require("../controllers/applicationController");
 
 // Protected routes - require authentication
 router.use(authenticateToken); // Apply auth middleware to all routes below
 
 // Authenticated user routes
-router.post("/", authorize("jobseeker", "user", "admin"), createApplication); // Submit application (requires authenticated user - jobseeker, user, or admin role)
+router.post(
+  "/",
+  authorize("jobseeker", "user", "admin"),
+  handleUpload("resume"),
+  createApplication
+); // Submit application (supports multipart/form-data with resume file or JSON)
+router.get("/:id/resume", downloadApplicationResume); // Download resume for an application (Applicant, Owning Employer, or Admin)
 router.get("/email/:email", getApplicationsByEmail); // Get applications by email (for authenticated users)
 router.get("/verify/:token", verifyEmail); // Email verification (public - still needed for email links)
 

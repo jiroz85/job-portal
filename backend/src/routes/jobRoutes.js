@@ -1,8 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const { authenticateToken, authorize } = require("../middleware/auth");
+const {
+  authenticateToken,
+  optionalAuthenticateToken,
+  authorize,
+} = require("../middleware/auth");
 const {
   getJobs,
+  getMyJobs,
   getAllJobsAdmin,
   getJob,
   createJob,
@@ -13,9 +18,16 @@ const {
 
 // Public routes
 router.get("/", getJobs);
+// Employer / Admin my-jobs route (MUST be placed before /:id)
+router.get(
+  "/my-jobs",
+  authenticateToken,
+  authorize("admin", "employer"),
+  getMyJobs
+);
 // Admin routes
 router.get("/all", authenticateToken, authorize("admin"), getAllJobsAdmin);
-router.get("/:id", getJob);
+router.get("/:id", optionalAuthenticateToken, getJob);
 
 // Protected routes
 router.post("/", authenticateToken, authorize("admin", "employer"), createJob);

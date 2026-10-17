@@ -68,6 +68,11 @@ const JobDetailPage = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size exceeds 5 MB limit. Please select a smaller PDF or DOCX file.");
+        e.target.value = "";
+        return;
+      }
       setApplicationData((prev) => ({
         ...prev,
         resume: file,
@@ -87,8 +92,6 @@ const JobDetailPage = () => {
       newErrors.skills = "Skills are required";
     if (!applicationData.coverLetter.trim())
       newErrors.coverLetter = "Cover letter is required";
-    // Remove resume requirement temporarily
-    // if (!applicationData.resume) newErrors.resume = "Resume is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -106,7 +109,8 @@ const JobDetailPage = () => {
           education: applicationData.education,
           skills: applicationData.skills,
           coverLetter: applicationData.coverLetter,
-          availability: "Immediate", // Add required availability field
+          availability: "Immediate",
+          resume: applicationData.resume, // Include real resume file
         };
 
         console.log("Submitting application with payload:", applicationPayload);

@@ -27,3 +27,4 @@ backend/.env
 backend/check_*.js
 backend/clear_*.js
 backend/check_db.js
+backend/uploads/

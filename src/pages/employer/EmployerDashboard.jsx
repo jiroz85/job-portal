@@ -60,10 +60,9 @@ const EmployerDashboard = () => {
   // Fetch dashboard data from backend
   const fetchDashboardData = useCallback(async () => {
     try {
-      console.log("EmployerDashboard: Fetching dashboard data...");
-      // Fetch jobs and applications
+      // Fetch employer's own jobs and applications
       const [jobsResponse, applicationsResponse] = await Promise.all([
-        jobService.getAllJobs(),
+        jobService.getMyJobs(),
         applicationService.getAllApplications(),
       ]);
 

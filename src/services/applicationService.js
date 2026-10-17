@@ -1,8 +1,5 @@
 import axios from "axios";
-
-const API_BASE_URL = `${
-  import.meta.env.VITE_API_URL || "http://localhost:3001"
-}/api`;
+import { API_URL as API_BASE_URL } from "../utils/apiConfig";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
@@ -41,42 +38,72 @@ export const applicationService = {
     }
   },
 
-  // Submit application - REQUIRES AUTHENTICATED USER
+  // Submit application - REQUIRES AUTHENTICATED USER (Supports FormData with real resume file)
   submitApplication: async (applicationData) => {
     try {
-      // Only send fields that are needed - user data will come from authentication
-      const {
-        jobId,
-        applicantPhone,
-        coverLetter,
-        experience,
-        education,
-        skills,
-        expectedSalary,
-        availability,
-      } = applicationData;
+      let requestData;
+      let headers = {
+        ...getAuthHeaders(),
+      };
+
+      if (applicationData.resume instanceof File) {
+        const formData = new FormData();
+        Object.keys(applicationData).forEach((key) => {
+          if (key === "resume" && applicationData.resume) {
+            formData.append("resume", applicationData.resume);
+          } else if (
+            applicationData[key] !== undefined &&
+            applicationData[key] !== null
+          ) {
+            formData.append(key, applicationData[key]);
+          }
+        });
+        requestData = formData;
+        headers["Content-Type"] = "multipart/form-data";
+      } else {
+        requestData = applicationData;
+      }
 
       const response = await axios.post(
         `${API_BASE_URL}/applications`,
-        {
-          jobId,
-          applicantPhone,
-          coverLetter,
-          experience,
-          education,
-          skills,
-          expectedSalary,
-          availability,
-        },
-        {
-          headers: {
-            ...getAuthHeaders(),
-          },
-        }
+        requestData,
+        { headers }
       );
       return response.data;
     } catch (error) {
       console.error("Error submitting application:", error);
+      const errMsg =
+        error.response?.data?.error || error.message || "Failed to submit application";
+      throw new Error(errMsg);
+    }
+  },
+
+  // Download application resume (Employer or Applicant or Admin)
+  downloadResume: async (applicationId, applicantName = "Applicant") => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/applications/${applicationId}/resume`,
+        {
+          headers: getAuthHeaders(),
+          responseType: "blob",
+        }
+      );
+
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"] || "application/pdf",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const safeName = `${applicantName.replace(/[^a-zA-Z0-9_-]/g, "_")}_Resume.pdf`;
+      link.setAttribute("download", safeName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      return true;
+    } catch (error) {
+      console.error("Error downloading application resume:", error);
       throw error;
     }
   },

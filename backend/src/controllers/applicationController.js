@@ -1,6 +1,10 @@
+const path = require("path");
+const { Op } = require("sequelize");
 const Application = require("../models/Application");
 const Job = require("../models/Job");
 const User = require("../models/User");
+const Resume = require("../models/Resume");
+const storageService = require("../services/storageService");
 
 // Get all applications (for employers/admins)
 const getApplications = async (req, res) => {
@@ -9,8 +13,48 @@ const getApplications = async (req, res) => {
     const offset = (page - 1) * limit;
 
     const whereClause = {};
-    if (jobId) whereClause.jobId = jobId;
     if (status) whereClause.status = status;
+
+    // Check employer restriction: employers can only view applications for jobs they own
+    if (req.user && req.user.role === "employer") {
+      if (jobId) {
+        // Verify this specific job belongs to the authenticated employer
+        const job = await Job.findOne({
+          where: { id: jobId, employerId: req.user.id },
+        });
+        if (!job) {
+          return res.status(403).json({
+            success: false,
+            error: "You are not authorized to view applications for this job",
+          });
+        }
+        whereClause.jobId = jobId;
+      } else {
+        // Fetch all jobs belonging to this employer
+        const employerJobs = await Job.findAll({
+          where: { employerId: req.user.id },
+          attributes: ["id"],
+        });
+        const employerJobIds = employerJobs.map((j) => j.id);
+
+        if (employerJobIds.length === 0) {
+          return res.json({
+            success: true,
+            data: [],
+            pagination: {
+              total: 0,
+              page: parseInt(page),
+              limit: parseInt(limit),
+              pages: 0,
+            },
+          });
+        }
+        whereClause.jobId = { [Op.in]: employerJobIds };
+      }
+    } else {
+      // Admin or other roles
+      if (jobId) whereClause.jobId = jobId;
+    }
 
     const applications = await Application.findAndCountAll({
       where: whereClause,
@@ -18,7 +62,7 @@ const getApplications = async (req, res) => {
         {
           model: Job,
           as: "job",
-          attributes: ["id", "title", "company", "location"],
+          attributes: ["id", "title", "company", "location", "employerId"],
         },
       ],
       order: [["applicationDate", "DESC"]],
@@ -62,6 +106,7 @@ const getApplication = async (req, res) => {
             "location",
             "description",
             "requirements",
+            "employerId",
           ],
         },
       ],
@@ -72,6 +117,16 @@ const getApplication = async (req, res) => {
         success: false,
         error: "Application not found",
       });
+    }
+
+    // Check employer restriction: employers can only view applications for jobs they own
+    if (req.user && req.user.role === "employer") {
+      if (!application.job || application.job.employerId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: "You are not authorized to view this application",
+        });
+      }
     }
 
     res.json({
@@ -300,12 +355,41 @@ const createApplication = async (req, res) => {
     // Create verification token
     const verificationToken = require("crypto").randomBytes(32).toString("hex");
 
+    // Process resume attachment (either direct upload or reference to existing resume)
+    let resumePath = null;
+    if (req.file) {
+      resumePath = req.file.filename;
+      try {
+        await Resume.create({
+          userId: authenticatedUser.id,
+          originalName: req.file.originalname,
+          fileName: req.file.filename,
+          filePath: req.file.filename,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          isDefault: false,
+        });
+      } catch (resumeErr) {
+        console.error("Note: could not create resume record:", resumeErr);
+      }
+    } else if (req.body.resumeId) {
+      const selectedResume = await Resume.findOne({
+        where: { id: req.body.resumeId, userId: authenticatedUser.id },
+      });
+      if (selectedResume) {
+        resumePath = selectedResume.fileName;
+      }
+    } else if (req.body.resumePath) {
+      resumePath = req.body.resumePath;
+    }
+
     // Create application with verification data and user ID
     const application = await Application.create({
       jobId,
       applicantName,
       applicantEmail,
       applicantPhone,
+      resumePath,
       coverLetter,
       experience,
       education,
@@ -369,12 +453,31 @@ const updateApplicationStatus = async (req, res) => {
       });
     }
 
-    const application = await Application.findByPk(id);
+    const application = await Application.findByPk(id, {
+      include: [
+        {
+          model: Job,
+          as: "job",
+          attributes: ["id", "employerId"],
+        },
+      ],
+    });
+
     if (!application) {
       return res.status(404).json({
         success: false,
         error: "Application not found",
       });
+    }
+
+    // Check employer restriction: employers can only update applications for jobs they own
+    if (req.user && req.user.role === "employer") {
+      if (!application.job || application.job.employerId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: "You are not authorized to update applications for this job",
+        });
+      }
     }
 
     // Update application
@@ -524,6 +627,78 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+// @desc    Download the resume file attached to an application
+// @route   GET /api/applications/:id/resume
+// @access  Private (Applicant, Owning Employer, or Admin)
+const downloadApplicationResume = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const application = await Application.findByPk(id, {
+      include: [
+        {
+          model: Job,
+          as: "job",
+          attributes: ["id", "title", "company", "employerId"],
+        },
+      ],
+    });
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        error: "Application not found",
+      });
+    }
+
+    // Authorization:
+    // 1. Admin can access any resume
+    // 2. The applicant who submitted can access their own resume
+    // 3. The employer who owns the job can access resumes for that job
+    const isAdmin = req.user.role === "admin";
+    const isApplicant =
+      application.userId === req.user.id ||
+      application.applicantEmail === req.user.email;
+    const isOwningEmployer =
+      req.user.role === "employer" &&
+      application.job &&
+      application.job.employerId === req.user.id;
+
+    if (!isAdmin && !isApplicant && !isOwningEmployer) {
+      return res.status(403).json({
+        success: false,
+        error: "You are not authorized to access this resume",
+      });
+    }
+
+    if (!application.resumePath) {
+      return res.status(404).json({
+        success: false,
+        error: "No resume attached to this application",
+      });
+    }
+
+    if (!storageService.fileExists(application.resumePath)) {
+      return res.status(404).json({
+        success: false,
+        error: "Resume file not found on storage",
+      });
+    }
+
+    const filePath = storageService.getFilePath(application.resumePath);
+    const ext = path.extname(application.resumePath) || ".pdf";
+    const safeName = `${application.applicantName.replace(/[^a-zA-Z0-9_-]/g, "_")}_Resume${ext}`;
+
+    res.download(filePath, safeName);
+  } catch (error) {
+    console.error("Error downloading application resume:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error downloading application resume",
+    });
+  }
+};
+
 module.exports = {
   getApplications,
   getApplication,
@@ -532,4 +707,5 @@ module.exports = {
   deleteApplication,
   getApplicationsByEmail,
   verifyEmail,
+  downloadApplicationResume,
 };

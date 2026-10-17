@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { API_URL } from "../../utils/apiConfig";
 
 const JobForm = ({ job, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -44,9 +45,8 @@ const JobForm = ({ job, onSuccess, onCancel }) => {
         },
       };
 
-      const url = job
-        ? `http://localhost:5000/api/admin/jobs/${job._id}`
-        : "http://localhost:5000/api/admin/jobs";
+      const jobId = job ? (job.id || job._id) : null;
+      const url = job ? `${API_URL}/jobs/${jobId}` : `${API_URL}/jobs`;
 
       const method = job ? "put" : "post";
 

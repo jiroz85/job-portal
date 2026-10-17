@@ -23,11 +23,11 @@ const ManageJobs = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [showDropdown, setShowDropdown] = useState(null);
 
-  // Fetch jobs from backend
+  // Fetch jobs from backend (only jobs belonging to this employer)
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const response = await jobService.getAllJobs();
+      const response = await jobService.getMyJobs();
       if (response.success) {
         // Transform backend data to match frontend format
         const transformedJobs = response.data.map((job) => ({

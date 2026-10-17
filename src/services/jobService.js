@@ -1,8 +1,5 @@
 import axios from "axios";
-
-const API_BASE_URL = `${
-  import.meta.env.VITE_API_URL || "http://localhost:3001"
-}/api`;
+import { API_URL as API_BASE_URL } from "../utils/apiConfig";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
@@ -10,13 +7,27 @@ const getAuthHeaders = () => {
 };
 
 export const jobService = {
-  // Get all jobs
+  // Get all jobs (public)
   getAllJobs: async (params = {}) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/jobs`, { params });
       return response.data;
     } catch (error) {
       console.error("Error fetching jobs:", error);
+      throw error;
+    }
+  },
+
+  // Get jobs created by the authenticated employer
+  getMyJobs: async (params = {}) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/jobs/my-jobs`, {
+        headers: getAuthHeaders(),
+        params,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching my jobs:", error);
       throw error;
     }
   },

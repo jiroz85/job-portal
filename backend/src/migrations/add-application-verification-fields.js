@@ -2,54 +2,105 @@ const { sequelize } = require("../config/database");
 
 async function addApplicationVerificationFields() {
   try {
-    console.log("Adding verification fields to applications table...");
+    console.log("Checking verification fields for applications table...");
 
-    // Add new columns to the applications table
-    await sequelize.query(`
-      ALTER TABLE applications 
-      ADD COLUMN IF NOT EXISTS isVerified BOOLEAN DEFAULT FALSE COMMENT 'Whether the applicant has been verified as legitimate',
-      ADD COLUMN IF NOT EXISTS verificationToken VARCHAR(255) NULL COMMENT 'Token for email verification',
-      ADD COLUMN IF NOT EXISTS emailVerified BOOLEAN DEFAULT FALSE COMMENT 'Whether the applicant email has been verified',
-      ADD COLUMN IF NOT EXISTS ipAddress VARCHAR(45) NULL COMMENT 'IP address of the applicant for fraud detection',
-      ADD COLUMN IF NOT EXISTS userAgent TEXT NULL COMMENT 'Browser user agent for application tracking',
-      ADD COLUMN IF NOT EXISTS riskScore INTEGER DEFAULT 0 COMMENT 'Risk assessment score (0-100, higher = more suspicious)',
-      ADD COLUMN IF NOT EXISTS flagged BOOLEAN DEFAULT FALSE COMMENT 'Whether this application has been flagged as suspicious'
+    // Retrieve existing columns on applications table
+    const [existingColumns] = await sequelize.query(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'applications';
     `);
 
-    console.log("✅ Verification fields added successfully");
+    const colNames = existingColumns.map((c) => c.COLUMN_NAME);
 
-    // Add indexes for the new fields (run separately for MariaDB compatibility)
-    const indexes = [
-      "CREATE INDEX IF NOT EXISTS idx_applications_isVerified ON applications(isVerified)",
-      "CREATE INDEX IF NOT EXISTS idx_applications_emailVerified ON applications(emailVerified)",
-      "CREATE INDEX IF NOT EXISTS idx_applications_riskScore ON applications(riskScore)",
-      "CREATE INDEX IF NOT EXISTS idx_applications_flagged ON applications(flagged)",
-      "CREATE INDEX IF NOT EXISTS idx_applications_verificationToken ON applications(verificationToken)",
+    const columnsToAdd = [
+      {
+        name: "isVerified",
+        sql: "ALTER TABLE applications ADD COLUMN isVerified BOOLEAN DEFAULT FALSE COMMENT 'Whether the applicant has been verified as legitimate';",
+      },
+      {
+        name: "verificationToken",
+        sql: "ALTER TABLE applications ADD COLUMN verificationToken VARCHAR(255) NULL COMMENT 'Token for email verification';",
+      },
+      {
+        name: "emailVerified",
+        sql: "ALTER TABLE applications ADD COLUMN emailVerified BOOLEAN DEFAULT FALSE COMMENT 'Whether the applicant email has been verified';",
+      },
+      {
+        name: "ipAddress",
+        sql: "ALTER TABLE applications ADD COLUMN ipAddress VARCHAR(45) NULL COMMENT 'IP address of the applicant for fraud detection';",
+      },
+      {
+        name: "userAgent",
+        sql: "ALTER TABLE applications ADD COLUMN userAgent TEXT NULL COMMENT 'Browser user agent for application tracking';",
+      },
+      {
+        name: "riskScore",
+        sql: "ALTER TABLE applications ADD COLUMN riskScore INTEGER DEFAULT 0 COMMENT 'Risk assessment score (0-100, higher = more suspicious)';",
+      },
+      {
+        name: "flagged",
+        sql: "ALTER TABLE applications ADD COLUMN flagged BOOLEAN DEFAULT FALSE COMMENT 'Whether this application has been flagged as suspicious';",
+      },
     ];
 
-    for (const indexSql of indexes) {
-      try {
-        await sequelize.query(indexSql);
-        console.log(
-          `✅ Created index: ${indexSql.split("idx_")[1].split(" ")[0]}`
-        );
-      } catch (error) {
-        if (
-          error.message.includes("Duplicate key name") ||
-          error.message.includes("already exists")
-        ) {
-          console.log(
-            `ℹ️ Index already exists: ${
-              indexSql.split("idx_")[1].split(" ")[0]
-            }`
-          );
-        } else {
-          console.error(`❌ Error creating index: ${indexSql}`, error.message);
-        }
+    for (const col of columnsToAdd) {
+      if (!colNames.includes(col.name)) {
+        await sequelize.query(col.sql);
+        console.log(`✅ Column ${col.name} added to applications table`);
+      } else {
+        console.log(`ℹ️ Column ${col.name} already exists on applications table`);
       }
     }
 
-    console.log("✅ Indexes added for verification fields");
+    // Retrieve existing indexes
+    const [existingIndexes] = await sequelize.query(`
+      SELECT INDEX_NAME 
+      FROM INFORMATION_SCHEMA.STATISTICS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'applications';
+    `);
+
+    const indexNames = existingIndexes.map((i) => i.INDEX_NAME);
+
+    const indexes = [
+      {
+        name: "idx_applications_isVerified",
+        sql: "CREATE INDEX idx_applications_isVerified ON applications(isVerified);",
+      },
+      {
+        name: "idx_applications_emailVerified",
+        sql: "CREATE INDEX idx_applications_emailVerified ON applications(emailVerified);",
+      },
+      {
+        name: "idx_applications_riskScore",
+        sql: "CREATE INDEX idx_applications_riskScore ON applications(riskScore);",
+      },
+      {
+        name: "idx_applications_flagged",
+        sql: "CREATE INDEX idx_applications_flagged ON applications(flagged);",
+      },
+      {
+        name: "idx_applications_verificationToken",
+        sql: "CREATE INDEX idx_applications_verificationToken ON applications(verificationToken);",
+      },
+    ];
+
+    for (const idx of indexes) {
+      if (!indexNames.includes(idx.name)) {
+        try {
+          await sequelize.query(idx.sql);
+          console.log(`✅ Created index: ${idx.name}`);
+        } catch (idxErr) {
+          console.warn(`Notice creating index ${idx.name}:`, idxErr.message);
+        }
+      } else {
+        console.log(`ℹ️ Index ${idx.name} already exists`);
+      }
+    }
+
+    console.log("✅ Verification fields and indexes checked successfully");
   } catch (error) {
     console.error("❌ Error adding verification fields:", error);
     throw error;

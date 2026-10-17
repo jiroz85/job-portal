@@ -166,6 +166,16 @@ User.associate = (models) => {
     foreignKey: "targetUserId",
     as: "auditTargets",
   });
+
+  User.hasMany(models.Job, {
+    foreignKey: "employerId",
+    as: "jobs",
+  });
+
+  User.hasMany(models.Resume, {
+    foreignKey: "userId",
+    as: "resumes",
+  });
 };
 
 module.exports = User;
