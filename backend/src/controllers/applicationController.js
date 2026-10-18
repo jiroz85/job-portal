@@ -4,16 +4,28 @@ const Application = require("../models/Application");
 const Job = require("../models/Job");
 const User = require("../models/User");
 const Resume = require("../models/Resume");
+const Audit = require("../models/Audit");
+const Notification = require("../models/Notification");
 const storageService = require("../services/storageService");
+const { sequelize } = require("../config/database");
 
 // Get all applications (for employers/admins)
 const getApplications = async (req, res) => {
   try {
-    const { jobId, status, page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+    const { jobId, status, page = 1, limit = 10, search } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 10));
+    const offset = (pageNum - 1) * limitNum;
 
     const whereClause = {};
-    if (status) whereClause.status = status;
+    if (status && status !== "all") whereClause.status = status;
+
+    if (search && search.trim()) {
+      whereClause[Op.or] = [
+        { applicantName: { [Op.like]: `%${search.trim()}%` } },
+        { applicantEmail: { [Op.like]: `%${search.trim()}%` } },
+      ];
+    }
 
     // Check employer restriction: employers can only view applications for jobs they own
     if (req.user && req.user.role === "employer") {
@@ -53,7 +65,7 @@ const getApplications = async (req, res) => {
       }
     } else {
       // Admin or other roles
-      if (jobId) whereClause.jobId = jobId;
+      if (jobId && jobId !== "all") whereClause.jobId = jobId;
     }
 
     const applications = await Application.findAndCountAll({
@@ -64,10 +76,16 @@ const getApplications = async (req, res) => {
           as: "job",
           attributes: ["id", "title", "company", "location", "employerId"],
         },
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "name", "email", "phone"],
+          required: false,
+        },
       ],
       order: [["applicationDate", "DESC"]],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit: limitNum,
+      offset: offset,
     });
 
     res.json({
@@ -75,9 +93,9 @@ const getApplications = async (req, res) => {
       data: applications.rows,
       pagination: {
         total: applications.count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(applications.count / limit),
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(applications.count / limitNum) || 1,
       },
     });
   } catch (error) {
@@ -440,6 +458,18 @@ const createApplication = async (req, res) => {
   }
 };
 
+const VALID_APPLICATION_STATUSES = [
+  "pending",
+  "under_review",
+  "shortlisted",
+  "interview_scheduled",
+  "interviewed",
+  "offered",
+  "accepted",
+  "rejected",
+  "withdrawn",
+];
+
 // Update application status (for employers/admins)
 const updateApplicationStatus = async (req, res) => {
   try {
@@ -450,6 +480,13 @@ const updateApplicationStatus = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "Status is required",
+      });
+    }
+
+    if (!VALID_APPLICATION_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid application status: "${status}". Valid statuses are: ${VALID_APPLICATION_STATUSES.join(", ")}`,
       });
     }
 
@@ -478,13 +515,72 @@ const updateApplicationStatus = async (req, res) => {
           error: "You are not authorized to update applications for this job",
         });
       }
+      if (application.status === "withdrawn") {
+        return res.status(400).json({
+          success: false,
+          error: "Cannot change the status of an application withdrawn by the candidate",
+        });
+      }
     }
 
-    // Update application
-    await application.update({
-      status,
-      notes: notes || application.notes,
-      lastUpdated: new Date(),
+    // Update application notes logic:
+    // If notes is undefined (omitted), preserve the existing note.
+    // If notes is explicitly an empty string, allow it to be cleared (stored as null).
+    const updatedNotes =
+      notes !== undefined
+        ? notes === ""
+          ? null
+          : notes
+        : application.notes;
+
+    // Update application and record audit atomically
+    await sequelize.transaction(async (t) => {
+      await application.update(
+        {
+          status,
+          notes: updatedNotes,
+          lastUpdated: new Date(),
+        },
+        { transaction: t }
+      );
+
+      await Audit.create(
+        {
+          action: "APPLICATION_UPDATE",
+          targetUserId: application.userId || null,
+          performedBy: req.user.id,
+          details: `Updated application #${application.id} status to "${status}"`,
+          ipAddress: req.ip || req.connection?.remoteAddress,
+          userAgent: req.get("User-Agent"),
+        },
+        { transaction: t }
+      );
+
+      // Deliver trusted notification to candidate upon status transition
+      if (application.userId) {
+        const statusMessages = {
+          viewed: "Your application has been viewed by the employer.",
+          shortlisted: "Congratulations! You have been shortlisted for the position.",
+          rejected: "Thank you for applying. Unfortunately, your application was not selected.",
+          offered: "Congratulations! You have received a job offer.",
+          hired: "Congratulations! You have been officially hired.",
+          withdrawn: "Your application has been marked as withdrawn.",
+        };
+
+        await Notification.create(
+          {
+            userId: application.userId,
+            title: "Application Status Updated",
+            message:
+              statusMessages[status] ||
+              `Your application #${application.id} status is now "${status}".`,
+            type: "application_status",
+            priority: status === "offered" || status === "hired" ? "high" : "medium",
+            link: "/applications",
+          },
+          { transaction: t }
+        );
+      }
     });
 
     // Return updated application with job details
@@ -523,6 +619,11 @@ const deleteApplication = async (req, res) => {
         success: false,
         error: "Application not found",
       });
+    }
+
+    // Clean up stored resume file if it exists
+    if (application.resumePath && storageService.fileExists(application.resumePath)) {
+      await storageService.deleteFile(application.resumePath);
     }
 
     await application.destroy();

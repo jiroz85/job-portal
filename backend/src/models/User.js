@@ -176,6 +176,20 @@ User.associate = (models) => {
     foreignKey: "userId",
     as: "resumes",
   });
+
+  if (models.Notification) {
+    User.hasMany(models.Notification, {
+      foreignKey: "userId",
+      as: "notifications",
+    });
+  }
+
+  if (models.Setting) {
+    User.hasMany(models.Setting, {
+      foreignKey: "updatedBy",
+      as: "updatedSettings",
+    });
+  }
 };
 
 module.exports = User;

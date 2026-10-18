@@ -1,19 +1,51 @@
 const { Op } = require("sequelize");
 const Job = require("../models/Job");
 const User = require("../models/User");
+const Audit = require("../models/Audit");
+const Notification = require("../models/Notification");
+const { sequelize } = require("../config/database");
 
 // @desc    Get all jobs (admin)
 // @route   GET /api/jobs/all
 // @access  Private/Admin
 exports.getAllJobsAdmin = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
+    const { page = 1, limit = 20, search, status, approvalStatus } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const offset = (pageNum - 1) * limitNum;
+
+    const whereClause = {};
+
+    if (status && status !== "all") {
+      whereClause.status = status;
+    }
+
+    if (approvalStatus && approvalStatus !== "all") {
+      whereClause.approvalStatus = approvalStatus;
+    }
+
+    if (search && search.trim()) {
+      whereClause[Op.or] = [
+        { title: { [Op.like]: `%${search.trim()}%` } },
+        { company: { [Op.like]: `%${search.trim()}%` } },
+        { location: { [Op.like]: `%${search.trim()}%` } },
+      ];
+    }
 
     const { count, rows: jobs } = await Job.findAndCountAll({
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      where: whereClause,
+      limit: limitNum,
+      offset: offset,
       order: [["createdAt", "DESC"]],
+      include: [
+        {
+          model: User,
+          as: "employer",
+          attributes: ["id", "name", "email"],
+          required: false,
+        },
+      ],
     });
 
     res.json({
@@ -21,11 +53,11 @@ exports.getAllJobsAdmin = async (req, res) => {
       data: {
         jobs,
         pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(count / limit),
+          currentPage: pageNum,
+          totalPages: Math.ceil(count / limitNum) || 1,
           totalJobs: count,
-          hasNext: page * limit < count,
-          hasPrev: page > 1,
+          hasNext: pageNum * limitNum < count,
+          hasPrev: pageNum > 1,
         },
       },
     });
@@ -307,7 +339,22 @@ exports.deleteJob = async (req, res) => {
       }
     }
 
-    await job.destroy();
+    await sequelize.transaction(async (t) => {
+      await Audit.create(
+        {
+          action: "JOB_DELETE",
+          performedBy: req.user.id,
+          targetUserId: job.employerId || null,
+          details: `Deleted job "${job.title}" (ID: ${job.id})`,
+          ipAddress: req.ip || req.connection?.remoteAddress,
+          userAgent: req.get("User-Agent"),
+        },
+        { transaction: t }
+      );
+
+      await job.destroy({ transaction: t });
+    });
+
     res.json({ success: true, data: {} });
   } catch (error) {
     console.error("Error deleting job:", error);
@@ -315,12 +362,37 @@ exports.deleteJob = async (req, res) => {
   }
 };
 
+const VALID_JOB_STATUSES = [
+  "active",
+  "inactive",
+  "filled",
+  "Draft",
+  "Published",
+  "Closed",
+];
+const VALID_APPROVAL_STATUSES = ["pending", "approved", "rejected"];
+
 // @desc    Update job status/approvalStatus
 // @route   PATCH /api/jobs/:id/status
 // @access  Private/Admin/Employer
 exports.updateJobStatus = async (req, res) => {
   try {
     const { status, approvalStatus } = req.body;
+
+    if (status && !VALID_JOB_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid job status: "${status}". Valid statuses are: ${VALID_JOB_STATUSES.join(", ")}`,
+      });
+    }
+
+    if (approvalStatus && !VALID_APPROVAL_STATUSES.includes(approvalStatus)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid approval status: "${approvalStatus}". Valid statuses are: ${VALID_APPROVAL_STATUSES.join(", ")}`,
+      });
+    }
+
     const job = await Job.findByPk(req.params.id);
 
     if (!job) {
@@ -348,7 +420,37 @@ exports.updateJobStatus = async (req, res) => {
     if (status) updates.status = status;
     if (approvalStatus && req.user.role === "admin") updates.approvalStatus = approvalStatus;
 
-    await job.update(updates);
+    await sequelize.transaction(async (t) => {
+      await job.update(updates, { transaction: t });
+
+      await Audit.create(
+        {
+          action: "JOB_UPDATE",
+          performedBy: req.user.id,
+          targetUserId: job.employerId || null,
+          details: `Updated job "${job.title}" (ID: ${job.id}) status: ${updates.status || job.status}, approvalStatus: ${updates.approvalStatus || job.approvalStatus}`,
+          ipAddress: req.ip || req.connection?.remoteAddress,
+          userAgent: req.get("User-Agent"),
+        },
+        { transaction: t }
+      );
+
+      // Deliver trusted notification to employer when approval status is changed by admin
+      if (job.employerId && updates.approvalStatus) {
+        await Notification.create(
+          {
+            userId: job.employerId,
+            title: "Job Approval Status Updated",
+            message: `Your job posting "${job.title}" has been ${updates.approvalStatus} by an administrator.`,
+            type: "system",
+            priority: updates.approvalStatus === "approved" ? "high" : "medium",
+            link: "/employer/jobs",
+          },
+          { transaction: t }
+        );
+      }
+    });
+
     res.json({ success: true, data: job });
   } catch (error) {
     console.error("Error updating job status:", error);

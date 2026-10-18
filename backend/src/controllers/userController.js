@@ -3,6 +3,7 @@ const Application = require("../models/Application");
 const Job = require("../models/Job");
 const Audit = require("../models/Audit");
 const { Op } = require("sequelize");
+const { sequelize } = require("../config/database");
 
 // Get all users with pagination and filtering
 const getAllUsers = async (req, res) => {
@@ -195,25 +196,28 @@ const deleteUser = async (req, res) => {
       });
     }
 
-    const deletedRowsCount = await User.destroy({
-      where: { id },
-    });
+    await sequelize.transaction(async (t) => {
+      // Log action to persistent audit trail within transaction
+      await Audit.create(
+        {
+          action: "USER_DELETE",
+          targetUserId: null,
+          performedBy: req.user.id,
+          details: `Deleted user: ${userBefore.name} (${userBefore.email}), ID: ${id}, Role: ${userBefore.role}`,
+          ipAddress: req.ip || req.connection?.remoteAddress,
+          userAgent: req.get("User-Agent"),
+        },
+        { transaction: t }
+      );
 
-    if (deletedRowsCount === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found",
+      const deletedRowsCount = await User.destroy({
+        where: { id },
+        transaction: t,
       });
-    }
 
-    // Log the action for audit trail
-    await Audit.create({
-      action: "USER_DELETE",
-      targetUserId: parseInt(id),
-      performedBy: req.user.id,
-      details: `Deleted user: ${userBefore.name} (${userBefore.email})`,
-      ipAddress: req.ip || req.connection.remoteAddress,
-      userAgent: req.get("User-Agent"),
+      if (deletedRowsCount === 0) {
+        throw new Error("User not found or already deleted");
+      }
     });
 
     res.json({
@@ -251,23 +255,27 @@ const updateUserRole = async (req, res) => {
       });
     }
 
-    const [updatedRowsCount] = await User.update({ role }, { where: { id } });
+    await sequelize.transaction(async (t) => {
+      const [updatedRowsCount] = await User.update(
+        { role },
+        { where: { id }, transaction: t }
+      );
 
-    if (updatedRowsCount === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found",
-      });
-    }
+      if (updatedRowsCount === 0) {
+        throw new Error("User not found or role unchanged");
+      }
 
-    // Log the action for audit trail
-    await Audit.create({
-      action: "ROLE_CHANGE",
-      targetUserId: parseInt(id),
-      performedBy: req.user.id,
-      details: `Changed role from ${userBefore.role} to ${role}`,
-      ipAddress: req.ip || req.connection.remoteAddress,
-      userAgent: req.get("User-Agent"),
+      await Audit.create(
+        {
+          action: "ROLE_CHANGE",
+          targetUserId: parseInt(id, 10),
+          performedBy: req.user.id,
+          details: `Changed role from ${userBefore.role} to ${role}`,
+          ipAddress: req.ip || req.connection?.remoteAddress,
+          userAgent: req.get("User-Agent"),
+        },
+        { transaction: t }
+      );
     });
 
     res.json({
@@ -305,23 +313,27 @@ const updateUserStatus = async (req, res) => {
       });
     }
 
-    const [updatedRowsCount] = await User.update({ status }, { where: { id } });
+    await sequelize.transaction(async (t) => {
+      const [updatedRowsCount] = await User.update(
+        { status },
+        { where: { id }, transaction: t }
+      );
 
-    if (updatedRowsCount === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found",
-      });
-    }
+      if (updatedRowsCount === 0) {
+        throw new Error("User not found or status unchanged");
+      }
 
-    // Log the action for audit trail
-    await Audit.create({
-      action: "STATUS_CHANGE",
-      targetUserId: parseInt(id),
-      performedBy: req.user.id,
-      details: `Changed status from ${userBefore.status} to ${status}`,
-      ipAddress: req.ip || req.connection.remoteAddress,
-      userAgent: req.get("User-Agent"),
+      await Audit.create(
+        {
+          action: "STATUS_CHANGE",
+          targetUserId: parseInt(id, 10),
+          performedBy: req.user.id,
+          details: `Changed status from ${userBefore.status} to ${status}`,
+          ipAddress: req.ip || req.connection?.remoteAddress,
+          userAgent: req.get("User-Agent"),
+        },
+        { transaction: t }
+      );
     });
 
     res.json({
@@ -337,9 +349,11 @@ const updateUserStatus = async (req, res) => {
   }
 };
 
-// Get user statistics
+// Get user & platform statistics
 const getUserStatistics = async (req, res) => {
   try {
+    const { dateRange = "30days", startDate, endDate } = req.query;
+
     const totalUsers = await User.count();
     const activeUsers = await User.count({ where: { status: "active" } });
     const inactiveUsers = await User.count({ where: { status: "inactive" } });
@@ -362,6 +376,27 @@ const getUserStatistics = async (req, res) => {
       },
     });
 
+    // Date range filter for period-specific statistics
+    let rangeFilter = null;
+    if (startDate || endDate) {
+      rangeFilter = {};
+      if (startDate && !isNaN(new Date(startDate).getTime())) {
+        rangeFilter[Op.gte] = new Date(startDate);
+      }
+      if (endDate && !isNaN(new Date(endDate).getTime())) {
+        rangeFilter[Op.lte] = new Date(endDate);
+      }
+    } else if (dateRange !== "all") {
+      const daysMap = { "7days": 7, "30days": 30, "90days": 90, "1year": 365 };
+      const days = daysMap[dateRange] || 30;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      rangeFilter = { [Op.gte]: cutoff };
+    }
+
+    // Trend filter condition: use rangeFilter if present; fallback to 30 days
+    const trendCondition = rangeFilter || { [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) };
+
     const roleStats = await User.findAll({
       attributes: [
         "role",
@@ -376,15 +411,10 @@ const getUserStatistics = async (req, res) => {
       attributes: ["id", "name", "email", "role", "createdAt"],
     });
 
-    // User registration trends (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
+    // User registration trends
     const registrationTrend = await User.findAll({
       where: {
-        createdAt: {
-          [Op.gte]: thirtyDaysAgo,
-        },
+        createdAt: trendCondition,
       },
       attributes: [
         [User.sequelize.fn("DATE", User.sequelize.col("createdAt")), "date"],
@@ -395,6 +425,98 @@ const getUserStatistics = async (req, res) => {
         [User.sequelize.fn("DATE", User.sequelize.col("createdAt")), "ASC"],
       ],
     });
+
+    // Application submission trends
+    const applicationTrend = await Application.findAll({
+      where: {
+        createdAt: trendCondition,
+      },
+      attributes: [
+        [Application.sequelize.fn("DATE", Application.sequelize.col("createdAt")), "date"],
+        [Application.sequelize.fn("COUNT", Application.sequelize.col("id")), "count"],
+      ],
+      group: [Application.sequelize.fn("DATE", Application.sequelize.col("createdAt"))],
+      order: [
+        [Application.sequelize.fn("DATE", Application.sequelize.col("createdAt")), "ASC"],
+      ],
+    });
+
+    // Job breakdowns by status, approvalStatus, and type
+    const jobStatusStats = await Job.findAll({
+      attributes: [
+        "status",
+        [Job.sequelize.fn("COUNT", Job.sequelize.col("id")), "count"],
+      ],
+      group: ["status"],
+    });
+
+    const jobApprovalStats = await Job.findAll({
+      attributes: [
+        "approvalStatus",
+        [Job.sequelize.fn("COUNT", Job.sequelize.col("id")), "count"],
+      ],
+      group: ["approvalStatus"],
+    });
+
+    const jobTypeStats = await Job.findAll({
+      attributes: [
+        "type",
+        [Job.sequelize.fn("COUNT", Job.sequelize.col("id")), "count"],
+      ],
+      group: ["type"],
+    });
+
+    // Top applied jobs from database
+    const topAppliedRows = await Application.findAll({
+      attributes: [
+        "jobId",
+        [
+          Application.sequelize.fn(
+            "COUNT",
+            Application.sequelize.col("Application.id")
+          ),
+          "applicationCount",
+        ],
+      ],
+      include: [
+        {
+          model: Job,
+          as: "job",
+          attributes: ["id", "title", "company"],
+        },
+      ],
+      group: ["jobId", "job.id"],
+      order: [[Application.sequelize.literal("applicationCount"), "DESC"]],
+      limit: 5,
+    });
+
+    // Application breakdown by status
+    const applicationStatusStats = await Application.findAll({
+      attributes: [
+        "status",
+        [
+          Application.sequelize.fn(
+            "COUNT",
+            Application.sequelize.col("id")
+          ),
+          "count",
+        ],
+      ],
+      group: ["status"],
+    });
+
+    // Period specific new counts
+    let periodNewUsers = null;
+    let periodNewJobs = null;
+    let periodNewApplications = null;
+
+    if (rangeFilter) {
+      [periodNewUsers, periodNewJobs, periodNewApplications] = await Promise.all([
+        User.count({ where: { createdAt: rangeFilter } }),
+        Job.count({ where: { createdAt: rangeFilter } }),
+        Application.count({ where: { createdAt: rangeFilter } }),
+      ]);
+    }
 
     res.json({
       success: true,
@@ -408,13 +530,58 @@ const getUserStatistics = async (req, res) => {
         blockedUsers,
         roleStats: roleStats.map((stat) => ({
           role: stat.role,
-          count: parseInt(stat.dataValues.count),
+          count: parseInt(stat.dataValues.count, 10),
         })),
         recentUsers,
         registrationTrend: registrationTrend.map((trend) => ({
           date: trend.dataValues.date,
-          count: parseInt(trend.dataValues.count),
+          count: parseInt(trend.dataValues.count, 10),
         })),
+        applicationTrend: applicationTrend.map((trend) => ({
+          date: trend.dataValues.date,
+          count: parseInt(trend.dataValues.count, 10),
+        })),
+        jobStats: {
+          byStatus: jobStatusStats.map((st) => ({
+            status: st.status,
+            count: parseInt(st.dataValues.count, 10),
+          })),
+          byApprovalStatus: jobApprovalStats.map((ap) => ({
+            approvalStatus: ap.approvalStatus,
+            count: parseInt(ap.dataValues.count, 10),
+          })),
+          byType: jobTypeStats.map((tp) => ({
+            type: tp.type,
+            count: parseInt(tp.dataValues.count, 10),
+          })),
+          topAppliedJobs: topAppliedRows.map((row) => ({
+            jobId: row.jobId,
+            title: row.job?.title || `Job #${row.jobId}`,
+            company: row.job?.company || "Unknown Company",
+            applicationCount: parseInt(row.dataValues.applicationCount, 10),
+          })),
+        },
+        applicationStats: {
+          byStatus: applicationStatusStats.map((app) => {
+            const count = parseInt(app.dataValues.count, 10);
+            return {
+              status: app.status,
+              count,
+              percentage:
+                totalApplications > 0
+                  ? Number(((count / totalApplications) * 100).toFixed(1))
+                  : 0,
+            };
+          }),
+        },
+        periodStats: rangeFilter
+          ? {
+              dateRange,
+              newUsers: periodNewUsers,
+              newJobs: periodNewJobs,
+              newApplications: periodNewApplications,
+            }
+          : null,
       },
     });
   } catch (error) {

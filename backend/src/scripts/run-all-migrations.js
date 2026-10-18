@@ -11,17 +11,22 @@ const Job = require("../models/Job");
 const Application = require("../models/Application");
 const Audit = require("../models/Audit");
 const Resume = require("../models/Resume");
+const Setting = require("../models/Setting");
+const Notification = require("../models/Notification");
 const addApplicationVerificationFields = require("../migrations/add-application-verification-fields");
 const addJobEmployerOwnership = require("../migrations/add-job-employer-ownership");
 const createResumesTable = require("../migrations/create-resumes-table");
+const createSettingsAndNotificationsTables = require("../migrations/create-settings-and-notifications-tables");
 
 // Setup associations
 const setupAssociations = () => {
-  User.associate({ Application, Audit, Job, Resume });
+  User.associate({ Application, Audit, Job, Resume, Setting, Notification });
   Application.associate({ User, Job });
   Job.associate({ Application, User });
   Audit.associate({ User });
   Resume.associate({ User });
+  Setting.associate({ User });
+  Notification.associate({ User });
 };
 
 async function runAllMigrations() {
@@ -35,27 +40,32 @@ async function runAllMigrations() {
     console.log("✅ Database connection established.\n");
 
     // Ensure base tables exist
-    console.log("Step 0/3: Synchronizing base models...");
+    console.log("Step 0/4: Synchronizing base models...");
     setupAssociations();
     await sequelize.sync();
     console.log("  ↳ Base tables created or verified.\n");
 
     // 1. Application verification fields
-    console.log("Step 1/3: Running verification fields migration...");
+    console.log("Step 1/4: Running verification fields migration...");
     await addApplicationVerificationFields();
     console.log("  ↳ Verification fields completed.\n");
 
     // 2. Job employer ownership
-    console.log("Step 2/3: Running job employer ownership migration...");
+    console.log("Step 2/4: Running job employer ownership migration...");
     await addJobEmployerOwnership();
     console.log("  ↳ Job ownership completed.\n");
 
     // 3. Resumes table
-    console.log("Step 3/3: Running resumes table migration...");
+    console.log("Step 3/4: Running resumes table migration...");
     await createResumesTable();
     console.log("  ↳ Resumes table completed.\n");
 
-    // 4. Admin Account Verification (No hardcoded default admin)
+    // 4. System settings & notifications tables and audit ENUM
+    console.log("Step 4/4: Running system settings & notifications migration...");
+    await createSettingsAndNotificationsTables();
+    console.log("  ↳ System settings & notifications completed.\n");
+
+    // 5. Admin Account Verification (No hardcoded default admin)
     const adminUser = await User.findOne({ where: { role: "admin" } });
     if (adminUser) {
       console.log(`Step 4: Primary admin account verified (${adminUser.email}).\n`);

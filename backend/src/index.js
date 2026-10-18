@@ -18,11 +18,15 @@ const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
 const auditRoutes = require("./routes/auditRoutes");
 const resumeRoutes = require("./routes/resumeRoutes");
+const settingRoutes = require("./routes/settingRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 const Job = require("./models/Job");
 const Application = require("./models/Application");
 const User = require("./models/User");
 const Audit = require("./models/Audit");
 const Resume = require("./models/Resume");
+const Setting = require("./models/Setting");
+const Notification = require("./models/Notification");
 
 const app = express();
 
@@ -85,11 +89,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // Setup model associations
 const setupAssociations = () => {
-  User.associate({ Application, Audit, Job, Resume });
+  User.associate({ Application, Audit, Job, Resume, Setting, Notification });
   Application.associate({ User, Job });
   Job.associate({ Application, User });
   Audit.associate({ User });
   Resume.associate({ User });
+  Setting.associate({ User });
+  Notification.associate({ User });
 };
 
 // Health check endpoint for uptime monitoring and deployment verification
@@ -161,6 +167,8 @@ const startServer = async () => {
   app.use("/api/users", userRoutes);
   app.use("/api/audit", auditRoutes);
   app.use("/api/resumes", resumeRoutes);
+  app.use("/api/settings", settingRoutes);
+  app.use("/api/notifications", notificationRoutes);
 
   // Base route
   app.get("/", (req, res) => {
@@ -196,6 +204,22 @@ const startServer = async () => {
           updateStatus: "PUT /api/users/:id/status (admin required)",
           getStatistics: "GET /api/users/statistics (admin required)",
           getActivity: "GET /api/users/:id/activity (admin required)",
+        },
+        settings: {
+          getSettings: "GET /api/settings (admin required)",
+          updateSettings: "PUT /api/settings (admin required)",
+          resetSettings: "POST /api/settings/reset (admin required)",
+          resetCategory: "POST /api/settings/reset/:category (admin required)",
+        },
+        notifications: {
+          getAll: "GET /api/notifications (auth required)",
+          getUnreadCount: "GET /api/notifications/unread-count (auth required)",
+          markAsRead: "PATCH /api/notifications/:id/read (auth required)",
+          markAsUnread: "PATCH /api/notifications/:id/unread (auth required)",
+          markAllAsRead: "PATCH /api/notifications/mark-all-read (auth required)",
+          delete: "DELETE /api/notifications/:id (auth required)",
+          clearAll: "DELETE /api/notifications/clear-all (auth required)",
+          create: "POST /api/notifications (admin required)",
         },
         health: "GET /api/health (and GET /health)",
       },

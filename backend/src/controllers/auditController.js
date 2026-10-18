@@ -2,6 +2,21 @@ const Audit = require("../models/Audit");
 const User = require("../models/User");
 const { Op } = require("sequelize");
 
+const VALID_AUDIT_ACTIONS = [
+  "ROLE_CHANGE",
+  "STATUS_CHANGE",
+  "USER_DELETE",
+  "USER_CREATE",
+  "USER_UPDATE",
+  "LOGIN",
+  "LOGOUT",
+  "JOB_CREATE",
+  "JOB_UPDATE",
+  "JOB_DELETE",
+  "APPLICATION_SUBMIT",
+  "APPLICATION_UPDATE",
+];
+
 // Log admin action for audit trail
 const logAction = async (req, res) => {
   try {
@@ -17,9 +32,16 @@ const logAction = async (req, res) => {
       });
     }
 
+    if (!VALID_AUDIT_ACTIONS.includes(action)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid audit action: "${action}". Valid actions are: ${VALID_AUDIT_ACTIONS.join(", ")}`,
+      });
+    }
+
     const auditLog = await Audit.create({
       action,
-      targetUserId,
+      targetUserId: targetUserId ? parseInt(targetUserId, 10) : null,
       performedBy,
       details,
       ipAddress,
@@ -53,33 +75,46 @@ const getAuditLogs = async (req, res) => {
       sortOrder = "DESC",
     } = req.query;
 
-    const offset = (page - 1) * limit;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const offset = (pageNum - 1) * limitNum;
     const whereClause = {};
 
     // Build search conditions
-    if (action) {
-      whereClause.action = action;
+    if (action && action !== "all") {
+      whereClause.action = action.trim();
     }
 
-    if (userId) {
-      whereClause[Op.or] = [{ targetUserId: userId }, { performedBy: userId }];
+    if (userId && userId !== "all") {
+      const parsedUserId = parseInt(userId, 10);
+      if (!isNaN(parsedUserId)) {
+        whereClause[Op.or] = [
+          { targetUserId: parsedUserId },
+          { performedBy: parsedUserId },
+        ];
+      }
     }
 
     if (startDate || endDate) {
       whereClause.createdAt = {};
-      if (startDate) {
+      if (startDate && !isNaN(new Date(startDate).getTime())) {
         whereClause.createdAt[Op.gte] = new Date(startDate);
       }
-      if (endDate) {
+      if (endDate && !isNaN(new Date(endDate).getTime())) {
         whereClause.createdAt[Op.lte] = new Date(endDate);
       }
     }
 
+    const safeSortBy = ["createdAt", "action", "id"].includes(sortBy)
+      ? sortBy
+      : "createdAt";
+    const safeSortOrder = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
     const { count, rows: logs } = await Audit.findAndCountAll({
       where: whereClause,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [[sortBy, sortOrder.toUpperCase()]],
+      limit: limitNum,
+      offset: offset,
+      order: [[safeSortBy, safeSortOrder]],
       include: [
         {
           model: User,
@@ -101,11 +136,11 @@ const getAuditLogs = async (req, res) => {
       data: {
         logs,
         pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(count / limit),
+          currentPage: pageNum,
+          totalPages: Math.ceil(count / limitNum) || 1,
           totalLogs: count,
-          hasNext: page * limit < count,
-          hasPrev: page > 1,
+          hasNext: pageNum * limitNum < count,
+          hasPrev: pageNum > 1,
         },
       },
     });
@@ -131,26 +166,35 @@ const getUserActivity = async (req, res) => {
       sortOrder = "DESC",
     } = req.query;
 
-    const offset = (page - 1) * limit;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const offset = (pageNum - 1) * limitNum;
+    const parsedUserId = parseInt(userId, 10);
+
     const whereClause = {
-      [Op.or]: [{ targetUserId: userId }, { performedBy: userId }],
+      [Op.or]: [{ targetUserId: parsedUserId }, { performedBy: parsedUserId }],
     };
 
     if (startDate || endDate) {
       whereClause.createdAt = {};
-      if (startDate) {
+      if (startDate && !isNaN(new Date(startDate).getTime())) {
         whereClause.createdAt[Op.gte] = new Date(startDate);
       }
-      if (endDate) {
+      if (endDate && !isNaN(new Date(endDate).getTime())) {
         whereClause.createdAt[Op.lte] = new Date(endDate);
       }
     }
 
+    const safeSortBy = ["createdAt", "action", "id"].includes(sortBy)
+      ? sortBy
+      : "createdAt";
+    const safeSortOrder = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
     const { count, rows: activities } = await Audit.findAndCountAll({
       where: whereClause,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [[sortBy, sortOrder.toUpperCase()]],
+      limit: limitNum,
+      offset: offset,
+      order: [[safeSortBy, safeSortOrder]],
       include: [
         {
           model: User,
@@ -172,11 +216,11 @@ const getUserActivity = async (req, res) => {
       data: {
         activities,
         pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(count / limit),
+          currentPage: pageNum,
+          totalPages: Math.ceil(count / limitNum) || 1,
           totalActivities: count,
-          hasNext: page * limit < count,
-          hasPrev: page > 1,
+          hasNext: pageNum * limitNum < count,
+          hasPrev: pageNum > 1,
         },
       },
     });
@@ -248,12 +292,12 @@ const getSystemStats = async (req, res) => {
       data: {
         actionStats: actionStats.map((stat) => ({
           action: stat.action,
-          count: parseInt(stat.dataValues.count),
+          count: parseInt(stat.dataValues.count, 10),
         })),
         recentActivity,
         activityTrend: activityTrend.map((trend) => ({
           date: trend.dataValues.date,
-          count: parseInt(trend.dataValues.count),
+          count: parseInt(trend.dataValues.count, 10),
         })),
       },
     });
@@ -273,20 +317,26 @@ const exportLogs = async (req, res) => {
 
     const whereClause = {};
 
-    if (action) {
-      whereClause.action = action;
+    if (action && action !== "all") {
+      whereClause.action = action.trim();
     }
 
-    if (userId) {
-      whereClause[Op.or] = [{ targetUserId: userId }, { performedBy: userId }];
+    if (userId && userId !== "all") {
+      const parsedUserId = parseInt(userId, 10);
+      if (!isNaN(parsedUserId)) {
+        whereClause[Op.or] = [
+          { targetUserId: parsedUserId },
+          { performedBy: parsedUserId },
+        ];
+      }
     }
 
     if (startDate || endDate) {
       whereClause.createdAt = {};
-      if (startDate) {
+      if (startDate && !isNaN(new Date(startDate).getTime())) {
         whereClause.createdAt[Op.gte] = new Date(startDate);
       }
-      if (endDate) {
+      if (endDate && !isNaN(new Date(endDate).getTime())) {
         whereClause.createdAt[Op.lte] = new Date(endDate);
       }
     }
@@ -311,7 +361,7 @@ const exportLogs = async (req, res) => {
     });
 
     if (format === "csv") {
-      // Convert to CSV
+      // Convert to RFC 4180 CSV
       const csvHeaders = [
         "ID",
         "Action",
@@ -321,6 +371,11 @@ const exportLogs = async (req, res) => {
         "IP Address",
         "Created At",
       ];
+
+      const escapeCsvField = (field) => {
+        if (field === null || field === undefined) return '""';
+        return `"${String(field).replace(/"/g, '""')}"`;
+      };
 
       const csvRows = logs.map((log) => [
         log.id,
@@ -333,14 +388,15 @@ const exportLogs = async (req, res) => {
           : "N/A",
         log.details || "",
         log.ipAddress || "",
-        log.createdAt.toISOString(),
+        log.createdAt ? log.createdAt.toISOString() : "",
       ]);
 
-      const csvContent = [csvHeaders, ...csvRows]
-        .map((row) => row.map((field) => `"${field}"`).join(","))
-        .join("\n");
+      const csvContent = [
+        csvHeaders.map(escapeCsvField).join(","),
+        ...csvRows.map((row) => row.map(escapeCsvField).join(",")),
+      ].join("\r\n");
 
-      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader(
         "Content-Disposition",
         `attachment; filename="audit-logs-${

@@ -22,7 +22,8 @@ const Audit = sequelize.define(
         "JOB_UPDATE",
         "JOB_DELETE",
         "APPLICATION_SUBMIT",
-        "APPLICATION_UPDATE"
+        "APPLICATION_UPDATE",
+        "SETTING_UPDATE"
       ),
       allowNull: false,
     },
@@ -67,6 +68,20 @@ const Audit = sequelize.define(
         fields: ["createdAt"],
       },
     ],
+    hooks: {
+      beforeUpdate: () => {
+        throw new Error("Audit logs are immutable and cannot be modified");
+      },
+      beforeDestroy: () => {
+        throw new Error("Audit logs are immutable and cannot be deleted");
+      },
+      beforeBulkUpdate: () => {
+        throw new Error("Bulk modification of audit logs is forbidden");
+      },
+      beforeBulkDestroy: () => {
+        throw new Error("Bulk deletion of audit logs is forbidden");
+      },
+    },
   }
 );
 
