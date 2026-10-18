@@ -43,6 +43,19 @@ const Navbar = () => {
 
   const closeMenu = () => setMobileMenuOpen(false);
 
+  const handleBrowseJobsClick = (e) => {
+    closeMenu();
+    if (location.pathname === "/") {
+      e.preventDefault();
+      const target = document.getElementById("featured-jobs");
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth" });
+      }
+    } else {
+      navigate("/#featured-jobs");
+    }
+  };
+
   return (
     <nav className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 transition-colors">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -80,9 +93,10 @@ const Navbar = () => {
             </Link>
 
             <Link
-              to="/jobs"
+              to="/#featured-jobs"
+              onClick={handleBrowseJobsClick}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive("/jobs")
+                location.hash === "#featured-jobs"
                   ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50"
                   : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800/60"
               }`}
@@ -189,10 +203,10 @@ const Navbar = () => {
             </Link>
 
             <Link
-              to="/jobs"
-              onClick={closeMenu}
+              to="/#featured-jobs"
+              onClick={handleBrowseJobsClick}
               className={`block px-3 py-2 rounded-lg text-base font-medium ${
-                isActive("/jobs")
+                location.hash === "#featured-jobs"
                   ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400"
                   : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}

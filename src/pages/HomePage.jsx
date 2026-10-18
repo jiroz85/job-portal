@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   FaSearch,
   FaMapMarkerAlt,
@@ -104,12 +104,25 @@ const HomePage = () => {
   const { getPublishedJobs, loading, error, fetchJobs } = useJobs();
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const locationState = useLocation();
 
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("");
 
   const publishedJobs = getPublishedJobs();
   const recentJobs = publishedJobs.slice(0, 6);
+
+  // Auto-scroll to featured jobs if requested via hash
+  useEffect(() => {
+    if (window.location.hash === "#featured-jobs" || locationState.hash === "#featured-jobs") {
+      const target = document.getElementById("featured-jobs");
+      if (target) {
+        setTimeout(() => {
+          target.scrollIntoView({ behavior: "smooth" });
+        }, 150);
+      }
+    }
+  }, [locationState.hash]);
 
   // Calculate real category counts from actual active jobs
   const getCategoryCount = (categoryKeywords) => {
@@ -288,7 +301,7 @@ const HomePage = () => {
       </section>
 
       {/* 3. FEATURED / RECENT JOBS SECTION */}
-      <section className="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900/50">
+      <section id="featured-jobs" className="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900/50 scroll-mt-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-10">
             <div>
