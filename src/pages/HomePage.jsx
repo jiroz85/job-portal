@@ -170,7 +170,7 @@ const HomePage = () => {
             >
               <div className="flex flex-col md:flex-row gap-2">
                 {/* Keywords input */}
-                <div className="flex-1 flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                <div className="flex-1 flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
                   <FaSearch className="text-gray-400 text-base mr-3 flex-shrink-0" />
                   <input
                     type="text"
@@ -183,7 +183,7 @@ const HomePage = () => {
                 </div>
 
                 {/* Location input */}
-                <div className="flex-1 flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                <div className="flex-1 flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
                   <FaMapMarkerAlt className="text-gray-400 text-base mr-3 flex-shrink-0" />
                   <input
                     type="text"
@@ -206,7 +206,7 @@ const HomePage = () => {
               </div>
 
               {/* Quick Search Tags */}
-              <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-750 px-2 text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 px-2 text-xs text-gray-500 dark:text-gray-400">
                 <span className="font-medium mr-1">Popular:</span>
                 {QUICK_TAGS.map((tag) => (
                   <button
@@ -372,7 +372,7 @@ const HomePage = () => {
             <div className="text-center mt-12">
               <Link
                 to="/jobs"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-900 dark:text-white font-semibold text-sm border border-gray-200 dark:border-gray-700 shadow-sm transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-semibold text-sm border border-gray-200 dark:border-gray-700 shadow-sm transition-colors"
               >
                 <span>Browse all {publishedJobs.length} available jobs</span>
                 <FaArrowRight className="text-xs text-blue-600" />
