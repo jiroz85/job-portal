@@ -426,44 +426,72 @@ const JobDetailPage = () => {
           </div>
 
           {/* Key Metric Highlights Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6">
-            <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750 border border-gray-100 dark:border-gray-700/70">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
-                Location
-              </span>
-              <div className="flex items-center gap-1.5 font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                <FaMapMarkerAlt className="text-blue-500 flex-shrink-0" />
-                <span className="truncate">{job.location || "Not specified"}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6">
+            {/* Location Card */}
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-blue-50/50 dark:bg-gray-800/80 border border-blue-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs">
+                <FaMapMarkerAlt />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-0.5">
+                  Location
+                </span>
+                <span className="text-base font-bold text-gray-900 dark:text-white truncate block">
+                  {job.location || "Not specified"}
+                </span>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750 border border-gray-100 dark:border-gray-700/70">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
-                Salary
-              </span>
-              <div className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400 text-sm">
-                <FaDollarSign className="text-emerald-500 flex-shrink-0" />
-                <span className="truncate">{job.salary || "Competitive"}</span>
+            {/* Salary Range Card */}
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-50/50 dark:bg-gray-800/80 border border-emerald-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs">
+                <FaDollarSign />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block mb-0.5">
+                  Salary Range
+                </span>
+                <span className="text-base font-bold text-emerald-700 dark:text-emerald-300 truncate block">
+                  {job.salary || "Competitive"}
+                </span>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750 border border-gray-100 dark:border-gray-700/70">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
-                Date Posted
-              </span>
-              <div className="flex items-center gap-1.5 font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                <FaClock className="text-gray-400 flex-shrink-0" />
-                <span className="truncate">{postedCalendar || postedRelative}</span>
+            {/* Date Posted Card */}
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-amber-50/50 dark:bg-gray-800/80 border border-amber-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs">
+                <FaClock />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 block mb-0.5">
+                  Date Posted
+                </span>
+                <span className="text-base font-bold text-gray-900 dark:text-white truncate block">
+                  {postedCalendar || postedRelative}
+                </span>
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-medium block">
+                  {postedRelative}
+                </span>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750 border border-gray-100 dark:border-gray-700/70">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
-                Work Type
-              </span>
-              <div className="flex items-center gap-1.5 font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                <FaBriefcase className="text-purple-500 flex-shrink-0" />
-                <span className="truncate">{job.type || "Full-time"}</span>
+            {/* Work Type Card */}
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-purple-50/50 dark:bg-gray-800/80 border border-purple-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs">
+                <FaBriefcase />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-400 block mb-0.5">
+                  Work Type
+                </span>
+                <span className="text-base font-bold text-gray-900 dark:text-white truncate block">
+                  {job.type || "Full-time"}
+                </span>
+                {job.experience && (
+                  <span className="text-xs text-purple-600 dark:text-purple-400 font-medium block">
+                    {job.experience}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -537,7 +565,7 @@ const JobDetailPage = () => {
                   {skillsList.map((skill, idx) => (
                     <span
                       key={idx}
-                      className="px-3.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 text-xs sm:text-sm font-medium shadow-2xs"
+                      className="px-3.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 text-xs sm:text-sm font-medium shadow-xs"
                     >
                       {skill}
                     </span>
@@ -556,7 +584,7 @@ const JobDetailPage = () => {
                   {benefitsList.map((item, idx) => (
                     <li
                       key={idx}
-                      className="p-3 rounded-xl bg-gray-50 dark:bg-gray-750 border border-gray-100 dark:border-gray-700 flex items-center text-sm text-gray-700 dark:text-gray-300"
+                      className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700 flex items-center text-sm text-gray-700 dark:text-gray-300"
                     >
                       <span className="mr-2.5 flex-shrink-0 w-5 h-5 rounded-full bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xs">
                         <FaCheck />
@@ -646,10 +674,10 @@ const JobDetailPage = () => {
 
       {/* Application Modal */}
       {showApplicationModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-750/50">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-700/40">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                   Apply for {job.title}
@@ -838,7 +866,7 @@ const JobDetailPage = () => {
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                       Resume (PDF or DOCX, max 5 MB)
                     </label>
-                    <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-blue-500 dark:hover:border-blue-400 cursor-pointer bg-gray-50/50 dark:bg-gray-750/30 transition-colors">
+                    <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-blue-500 dark:hover:border-blue-400 cursor-pointer bg-gray-50/50 dark:bg-gray-700/30 transition-colors">
                       <FaFileUpload className="text-gray-400 dark:text-gray-500 text-2xl mb-1.5" />
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                         {applicationData.resume
