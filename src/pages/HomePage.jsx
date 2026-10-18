@@ -143,14 +143,15 @@ const HomePage = () => {
 
   // Auto-scroll to browse jobs section if requested via hash
   useEffect(() => {
+    const hash = locationState.hash || window.location.hash;
     if (
-      window.location.hash === "#browse-jobs" ||
-      window.location.hash === "#featured-jobs" ||
-      locationState.hash === "#browse-jobs" ||
-      locationState.hash === "#featured-jobs"
+      hash === "#browse-jobs" ||
+      hash === "#featured-jobs" ||
+      hash === "#categories"
     ) {
+      const targetId = hash === "#categories" ? "categories" : "browse-jobs";
       const target =
-        document.getElementById("browse-jobs") ||
+        document.getElementById(targetId) ||
         document.getElementById("featured-jobs");
       if (target) {
         setTimeout(() => {
@@ -698,7 +699,7 @@ const HomePage = () => {
       </section>
 
       {/* 3. TARGETED DISCOVERY (Categories with real counts & interactive filter) */}
-      <section className="py-16 sm:py-20 bg-white dark:bg-gray-900">
+      <section id="categories" className="py-16 sm:py-20 bg-white dark:bg-gray-900 scroll-mt-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">

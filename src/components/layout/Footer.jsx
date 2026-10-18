@@ -43,6 +43,11 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/#categories" className="hover:text-blue-400 transition-colors">
+                  Explore Categories
+                </Link>
+              </li>
+              <li>
                 <Link to="/?type=Remote#browse-jobs" className="hover:text-blue-400 transition-colors">
                   Remote Opportunities
                 </Link>

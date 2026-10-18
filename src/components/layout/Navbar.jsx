@@ -72,6 +72,20 @@ const Navbar = () => {
     }
   };
 
+  const handleCategoriesClick = (e) => {
+    closeMenu();
+    if (location.pathname === "/") {
+      e.preventDefault();
+      const target = document.getElementById("categories");
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth" });
+        window.history.pushState(null, "", "/#categories");
+      }
+    } else {
+      navigate("/#categories");
+    }
+  };
+
   return (
     <nav className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 transition-colors">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -121,6 +135,18 @@ const Navbar = () => {
               }`}
             >
               Browse Jobs
+            </Link>
+
+            <Link
+              to="/#categories"
+              onClick={handleCategoriesClick}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                location.hash === "#categories"
+                  ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50"
+                  : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              }`}
+            >
+              Categories
             </Link>
 
             {isAuthenticated ? (
@@ -231,6 +257,18 @@ const Navbar = () => {
               }`}
             >
               Browse Jobs
+            </Link>
+
+            <Link
+              to="/#categories"
+              onClick={handleCategoriesClick}
+              className={`block px-3 py-2 rounded-lg text-base font-medium ${
+                location.hash === "#categories"
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400"
+                  : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+              }`}
+            >
+              Categories
             </Link>
 
             {isAuthenticated ? (
