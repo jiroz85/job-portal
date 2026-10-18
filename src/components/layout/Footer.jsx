@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FaBriefcase, FaShieldAlt, FaUserCheck, FaBolt } from "react-icons/fa";
+import { FaShieldAlt, FaBolt } from "react-icons/fa";
 
 const Footer = () => {
   return (
@@ -9,9 +9,11 @@ const Footer = () => {
           {/* Brand & Mission */}
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="flex items-center space-x-2.5 mb-4 group">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
-                <FaBriefcase className="text-base" />
-              </div>
+              <img
+                src="/logo.png"
+                alt="JobPortal Logo"
+                className="w-9 h-9 object-contain flex-shrink-0"
+              />
               <span className="text-xl font-bold tracking-tight text-white">
                 JobPortal
               </span>

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
-  FaBriefcase,
   FaBars,
   FaTimes,
   FaUserCircle,
@@ -80,9 +79,11 @@ const Navbar = () => {
             onClick={handleHomeClick}
             className="flex items-center space-x-2.5 group"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
-              <FaBriefcase className="text-lg" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="JobPortal Logo"
+              className="w-10 h-10 object-contain group-hover:scale-105 transition-transform flex-shrink-0"
+            />
             <div className="flex flex-col">
               <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white leading-tight">
                 JobPortal
