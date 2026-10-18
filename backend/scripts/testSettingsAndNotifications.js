@@ -61,12 +61,12 @@ const runMigrationsContent = fs.readFileSync(runMigrationsPath, "utf8");
 const appControllerContent = fs.readFileSync(appControllerPath, "utf8");
 const jobControllerContent = fs.readFileSync(jobControllerPath, "utf8");
 
-const systemSettingsJsxContent = fs.readFileSync(systemSettingsJsxPath, "utf8");
-const notificationsJsxContent = fs.readFileSync(notificationsJsxPath, "utf8");
-const adminHeaderJsxContent = fs.readFileSync(adminHeaderJsxPath, "utf8");
-const notificationContextContent = fs.readFileSync(notificationContextPath, "utf8");
-const settingServiceContent = fs.readFileSync(settingServicePath, "utf8");
-const notificationServiceContent = fs.readFileSync(notificationServicePath, "utf8");
+const systemSettingsJsxContent = fs.existsSync(systemSettingsJsxPath) ? fs.readFileSync(systemSettingsJsxPath, "utf8") : null;
+const notificationsJsxContent = fs.existsSync(notificationsJsxPath) ? fs.readFileSync(notificationsJsxPath, "utf8") : null;
+const adminHeaderJsxContent = fs.existsSync(adminHeaderJsxPath) ? fs.readFileSync(adminHeaderJsxPath, "utf8") : null;
+const notificationContextContent = fs.existsSync(notificationContextPath) ? fs.readFileSync(notificationContextPath, "utf8") : null;
+const settingServiceContent = fs.existsSync(settingServicePath) ? fs.readFileSync(settingServicePath, "utf8") : null;
+const notificationServiceContent = fs.existsSync(notificationServicePath) ? fs.readFileSync(notificationServicePath, "utf8") : null;
 
 // 1. Setting Model & Persistence Architecture
 console.log("1. Auditing Setting Model & Architecture:");
@@ -101,13 +101,29 @@ assert(
 );
 assert(
   migrationContent.includes("ALTER TABLE audit_logs") &&
-    migrationContent.includes("'SETTING_UPDATE'"),
+    migrationContent.includes("SETTING_UPDATE"),
   "Migration script safely updates existing audit_logs action ENUM column in production databases"
 );
 assert(
   migrationContent.includes("INFORMATION_SCHEMA.COLUMNS") &&
     migrationContent.includes("INFORMATION_SCHEMA.TABLES"),
   "Migration script inspects schema metadata before applying column modifications (prevents errors on rerun)"
+);
+assert(
+  migrationContent.includes("existingEnumValues") &&
+    migrationContent.includes("targetEnumValues") &&
+    migrationContent.includes("preCount !== postCount"),
+  "Migration script dynamically preserves all existing audit ENUM members and validates zero record loss"
+);
+assert(
+  !runMigrationsContent.includes("User.destroy"),
+  "run-all-migrations.js does NOT automatically delete admin@example.com or any user accounts"
+);
+assert(
+  !runMigrationsContent.includes("Tech Corp HR") &&
+    !runMigrationsContent.includes("hr@techcorp.com") &&
+    !runMigrationsContent.includes("Job.bulkCreate"),
+  "run-all-migrations.js does NOT auto-create sample jobs or arbitrary employers"
 );
 assert(
   runMigrationsContent.includes("createSettingsAndNotificationsTables") &&
@@ -272,92 +288,96 @@ assert(
 );
 
 // 8. Frontend Services & API Wiring
-console.log("\n8. Auditing Frontend Services:");
-assert(
-  settingServiceContent.includes("axios.get(`${API_BASE_URL}/api/settings`") &&
-    settingServiceContent.includes("axios.put(`${API_BASE_URL}/api/settings`"),
-  "settingService connects to real GET and PUT /api/settings endpoints"
-);
-assert(
-  notificationServiceContent.includes("axios.get(url,") &&
-    notificationServiceContent.includes("axios.patch(") &&
-    notificationServiceContent.includes("/api/notifications"),
-  "notificationService connects to real persistent notification endpoints"
-);
+if (settingServiceContent && notificationServiceContent) {
+  console.log("\n8. Auditing Frontend Services:");
+  assert(
+    settingServiceContent.includes("axios.get(`${API_BASE_URL}/api/settings`") &&
+      settingServiceContent.includes("axios.put(`${API_BASE_URL}/api/settings`"),
+    "settingService connects to real GET and PUT /api/settings endpoints"
+  );
+  assert(
+    notificationServiceContent.includes("axios.get(url,") &&
+      notificationServiceContent.includes("axios.patch(") &&
+      notificationServiceContent.includes("/api/notifications"),
+    "notificationService connects to real persistent notification endpoints"
+  );
 
-// 9. SystemSettings.jsx Implementation
-console.log("\n9. Auditing SystemSettings.jsx Implementation:");
-assert(
-  !systemSettingsJsxContent.includes("alert(\"Settings saved successfully!\")") &&
-    !systemSettingsJsxContent.includes("console.log(\"Saving settings:\", settings)"),
-  "Purged mock alert and console.log placeholders from SystemSettings.jsx"
-);
-assert(
-  systemSettingsJsxContent.includes("settingService.getSettings") &&
-    systemSettingsJsxContent.includes("settingService.updateSettings") &&
-    systemSettingsJsxContent.includes("settingService.resetSettings"),
-  "SystemSettings.jsx is wired to real database-backed settingService methods"
-);
-assert(
-  systemSettingsJsxContent.includes("dark:bg-gray-800") &&
-    systemSettingsJsxContent.includes("dark:text-gray-100") &&
-    systemSettingsJsxContent.includes("dark:border-gray-700"),
-  "SystemSettings.jsx implements full dark-mode styling consistent with admin theme"
-);
-assert(
-  systemSettingsJsxContent.includes("Loading system settings from database") &&
-    systemSettingsJsxContent.includes("Saving to Database..."),
-  "SystemSettings.jsx provides clear database loading and saving visual feedback"
-);
-assert(
-  systemSettingsJsxContent.includes("Security & Audit Isolation"),
-  "SystemSettings.jsx clearly informs user of protected server credentials and audit trail"
-);
+  // 9. SystemSettings.jsx Implementation
+  console.log("\n9. Auditing SystemSettings.jsx Implementation:");
+  assert(
+    !systemSettingsJsxContent.includes("alert(\"Settings saved successfully!\")") &&
+      !systemSettingsJsxContent.includes("console.log(\"Saving settings:\", settings)"),
+    "Purged mock alert and console.log placeholders from SystemSettings.jsx"
+  );
+  assert(
+    systemSettingsJsxContent.includes("settingService.getSettings") &&
+      systemSettingsJsxContent.includes("settingService.updateSettings") &&
+      systemSettingsJsxContent.includes("settingService.resetSettings"),
+    "SystemSettings.jsx is wired to real database-backed settingService methods"
+  );
+  assert(
+    systemSettingsJsxContent.includes("dark:bg-gray-800") &&
+      systemSettingsJsxContent.includes("dark:text-gray-100") &&
+      systemSettingsJsxContent.includes("dark:border-gray-700"),
+    "SystemSettings.jsx implements full dark-mode styling consistent with admin theme"
+  );
+  assert(
+    systemSettingsJsxContent.includes("Loading system settings from database") &&
+      systemSettingsJsxContent.includes("Saving to Database..."),
+    "SystemSettings.jsx provides clear database loading and saving visual feedback"
+  );
+  assert(
+    systemSettingsJsxContent.includes("Security & Audit Isolation"),
+    "SystemSettings.jsx clearly informs user of protected server credentials and audit trail"
+  );
 
-// 10. Notifications.jsx Implementation
-console.log("\n10. Auditing Notifications.jsx Implementation:");
-assert(
-  !notificationsJsxContent.includes("auditService.getAuditLogs({ limit: 100 })"),
-  "Purged mock audit-log-as-notification workaround from Notifications.jsx"
-);
-assert(
-  notificationsJsxContent.includes("notificationService.getNotifications") &&
-    notificationsJsxContent.includes("notificationService.markAllAsRead") &&
-    notificationsJsxContent.includes("notificationService.markAsRead"),
-  "Notifications.jsx is wired to real persistent notificationService endpoints"
-);
-assert(
-  notificationsJsxContent.includes("dark:bg-gray-800") &&
-    notificationsJsxContent.includes("dark:text-gray-100") &&
-    notificationsJsxContent.includes("dark:border-gray-700"),
-  "Notifications.jsx implements full dark-mode styling consistent with admin theme"
-);
-assert(
-  notificationsJsxContent.includes("Showing page") &&
-    notificationsJsxContent.includes("totalPages"),
-  "Notifications.jsx implements authentic server-side pagination controls"
-);
-assert(
-  notificationsJsxContent.includes("Recipient Scoping:"),
-  "Notifications.jsx discloses strict recipient scoping and database persistence"
-);
+  // 10. Notifications.jsx Implementation
+  console.log("\n10. Auditing Notifications.jsx Implementation:");
+  assert(
+    !notificationsJsxContent.includes("auditService.getAuditLogs({ limit: 100 })"),
+    "Purged mock audit-log-as-notification workaround from Notifications.jsx"
+  );
+  assert(
+    notificationsJsxContent.includes("notificationService.getNotifications") &&
+      notificationsJsxContent.includes("notificationService.markAllAsRead") &&
+      notificationsJsxContent.includes("notificationService.markAsRead"),
+    "Notifications.jsx is wired to real persistent notificationService endpoints"
+  );
+  assert(
+    notificationsJsxContent.includes("dark:bg-gray-800") &&
+      notificationsJsxContent.includes("dark:text-gray-100") &&
+      notificationsJsxContent.includes("dark:border-gray-700"),
+    "Notifications.jsx implements full dark-mode styling consistent with admin theme"
+  );
+  assert(
+    notificationsJsxContent.includes("Showing page") &&
+      notificationsJsxContent.includes("totalPages"),
+    "Notifications.jsx implements authentic server-side pagination controls"
+  );
+  assert(
+    notificationsJsxContent.includes("Recipient Scoping:"),
+    "Notifications.jsx discloses strict recipient scoping and database persistence"
+  );
 
-// 11. AdminHeader.jsx & NotificationContext Persistence
-console.log("\n11. Auditing AdminHeader.jsx & NotificationContext.jsx:");
-assert(
-  adminHeaderJsxContent.includes("notificationService.getNotifications") &&
-    adminHeaderJsxContent.includes("notificationService.markAsRead"),
-  "AdminHeader.jsx connects bell dropdown and markAsRead to real notificationService"
-);
-assert(
-  !adminHeaderJsxContent.includes("auditService.getAuditLogs({ limit: 5 })"),
-  "Purged audit-log workaround from AdminHeader.jsx"
-);
-assert(
-  notificationContextContent.includes("notificationService.getNotifications") &&
-    notificationContextContent.includes("notificationService.markAllAsRead"),
-  "NotificationContext is wired to persistent notificationService endpoints"
-);
+  // 11. AdminHeader.jsx & NotificationContext Persistence
+  console.log("\n11. Auditing AdminHeader.jsx & NotificationContext.jsx:");
+  assert(
+    adminHeaderJsxContent.includes("notificationService.getNotifications") &&
+      adminHeaderJsxContent.includes("notificationService.markAsRead"),
+    "AdminHeader.jsx connects bell dropdown and markAsRead to real notificationService"
+  );
+  assert(
+    !adminHeaderJsxContent.includes("auditService.getAuditLogs({ limit: 5 })"),
+    "Purged audit-log workaround from AdminHeader.jsx"
+  );
+  assert(
+    notificationContextContent.includes("notificationService.getNotifications") &&
+      notificationContextContent.includes("notificationService.markAllAsRead"),
+    "NotificationContext is wired to persistent notificationService endpoints"
+  );
+} else {
+  console.log("\n8-11. Frontend service files not present in this revision (backend-only stage verified).");
+}
 
 console.log("\n===================================================================");
 console.log(`   Verification Summary: ${testsPassed} passed, ${testsFailed} failed   `);

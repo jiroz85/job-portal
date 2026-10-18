@@ -42,7 +42,7 @@ async function createSettingsAndNotificationsTables() {
     `);
     console.log("  ↳ notifications table created or verified.");
 
-    // 3. Ensure audit_logs action ENUM includes SETTING_UPDATE
+    // 3. Ensure audit_logs action ENUM includes SETTING_UPDATE safely
     const [tables] = await sequelize.query(`
       SELECT TABLE_NAME 
       FROM INFORMATION_SCHEMA.TABLES 
@@ -61,27 +61,51 @@ async function createSettingsAndNotificationsTables() {
 
       if (columns.length > 0) {
         const columnType = columns[0].COLUMN_TYPE || "";
-        if (!columnType.includes("'SETTING_UPDATE'")) {
-          console.log("  ↳ Updating audit_logs action ENUM to include 'SETTING_UPDATE'...");
+        const matches = columnType.match(/'([^']+)'/g);
+        const existingEnumValues = matches ? matches.map((m) => m.replace(/^'|'$/g, "")) : [];
+
+        if (!existingEnumValues.includes("SETTING_UPDATE")) {
+          console.log("  ↳ Preparing audit_logs action ENUM update...");
+
+          // Merge existing values with SETTING_UPDATE without dropping any existing value
+          const targetEnumValues = Array.from(new Set([...existingEnumValues, "SETTING_UPDATE"]));
+
+          // Safety check: Verify no existing records have invalid or null action values
+          const [invalidRows] = await sequelize.query(`
+            SELECT COUNT(*) AS count 
+            FROM audit_logs 
+            WHERE action IS NULL 
+               OR action NOT IN (${targetEnumValues.map((v) => `'${v}'`).join(", ")});
+          `);
+
+          const invalidCount = invalidRows[0]?.count || 0;
+          if (invalidCount > 0) {
+            throw new Error(
+              `Cannot safely modify audit_logs action ENUM: found ${invalidCount} existing records with invalid or unrecognized actions. Migration aborted to prevent data corruption.`
+            );
+          }
+
+          // Count rows before alteration to guarantee zero record loss
+          const [preCountResult] = await sequelize.query(`SELECT COUNT(*) AS count FROM audit_logs;`);
+          const preCount = preCountResult[0]?.count || 0;
+
+          const enumDefinition = targetEnumValues.map((v) => `'${v}'`).join(", ");
           await sequelize.query(`
             ALTER TABLE audit_logs 
-            MODIFY COLUMN action ENUM(
-              'ROLE_CHANGE',
-              'STATUS_CHANGE',
-              'USER_DELETE',
-              'USER_CREATE',
-              'USER_UPDATE',
-              'LOGIN',
-              'LOGOUT',
-              'JOB_CREATE',
-              'JOB_UPDATE',
-              'JOB_DELETE',
-              'APPLICATION_SUBMIT',
-              'APPLICATION_UPDATE',
-              'SETTING_UPDATE'
-            ) NOT NULL;
+            MODIFY COLUMN action ENUM(${enumDefinition}) NOT NULL;
           `);
-          console.log("  ↳ audit_logs action ENUM updated successfully.");
+
+          // Verify row count after alteration
+          const [postCountResult] = await sequelize.query(`SELECT COUNT(*) AS count FROM audit_logs;`);
+          const postCount = postCountResult[0]?.count || 0;
+
+          if (preCount !== postCount) {
+            throw new Error(
+              `CRITICAL INTEGRITY FAILURE: audit_logs record count changed from ${preCount} to ${postCount} during ENUM update.`
+            );
+          }
+
+          console.log("  ↳ audit_logs action ENUM updated successfully with all existing records preserved.");
         } else {
           console.log("  ↳ audit_logs action ENUM already includes 'SETTING_UPDATE'.");
         }

@@ -65,15 +65,10 @@ async function runAllMigrations() {
     await createSettingsAndNotificationsTables();
     console.log("  ↳ System settings & notifications completed.\n");
 
-    // 5. Admin Account Verification (No hardcoded default admin)
+    // 5. Admin Account Verification (Non-destructive: preserves all existing accounts)
     const adminUser = await User.findOne({ where: { role: "admin" } });
     if (adminUser) {
-      console.log(`Step 4: Primary admin account verified (${adminUser.email}).\n`);
-      // If a real admin exists, remove the placeholder admin@example.com if present
-      if (adminUser.email !== "admin@example.com") {
-        await User.destroy({ where: { email: "admin@example.com" } });
-        console.log("  ↳ Removed placeholder admin@example.com.\n");
-      }
+      console.log(`Step 5/5: Primary admin account verified (${adminUser.email}). Existing accounts preserved.\n`);
     } else if (process.env.ADMIN_EMAIL) {
       // Only bootstrap admin if explicitly configured via environment variable
       const bcrypt = require("bcryptjs");
@@ -97,58 +92,7 @@ async function runAllMigrations() {
         console.log(`  ↳ Admin created from ADMIN_EMAIL: '${adminEmail}'.\n`);
       }
     } else {
-      console.log("Step 4: No admin user configured via environment.\n");
-    }
-
-    // 5. Ensure sample jobs exist if jobs table is empty
-    const jobCount = await Job.count();
-    if (jobCount === 0) {
-      console.log("Step 5: No jobs found. Creating initial sample jobs...");
-      // Find or create an employer for sample jobs
-      let employer = await User.findOne({ where: { role: "employer" } });
-      if (!employer) {
-        const userPass = await bcrypt.hash("password123", 10);
-        employer = await User.create({
-          name: "Tech Corp HR",
-          email: "hr@techcorp.com",
-          password: userPass,
-          role: "employer",
-          status: "active",
-          bio: "Human Resources manager at Tech Corp.",
-        });
-      }
-
-      await Job.bulkCreate([
-        {
-          title: "Frontend Developer",
-          company: "Tech Corp",
-          location: "New York, NY",
-          description: "We are looking for a skilled Frontend Developer to join our team.",
-          requirements: "3+ years of experience with React, JavaScript, and CSS",
-          salary: "$90,000 - $120,000",
-          type: "Full-time",
-          experience: "Mid Level",
-          skills: "React,JavaScript,CSS,HTML",
-          status: "Published",
-          approvalStatus: "approved",
-          employerId: employer.id,
-        },
-        {
-          title: "Backend Developer",
-          company: "Tech Corp",
-          location: "Remote",
-          description: "Looking for a Backend Developer to build robust APIs and services.",
-          requirements: "Experience with Node.js, Express, and databases",
-          salary: "$100,000 - $140,000",
-          type: "Full-time",
-          experience: "Senior Level",
-          skills: "Node.js,Express,SQL,API Development",
-          status: "Published",
-          approvalStatus: "approved",
-          employerId: employer.id,
-        },
-      ]);
-      console.log("  ↳ Initial sample jobs created.\n");
+      console.log("Step 5/5: No admin user configured via environment.\n");
     }
 
     console.log("==================================================");
