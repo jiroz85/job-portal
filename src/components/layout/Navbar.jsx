@@ -36,12 +36,26 @@ const Navbar = () => {
   };
 
   const isActive = (path) => {
-    if (path === "/" && location.pathname === "/") return true;
+    if (path === "/" && location.pathname === "/" && !location.hash) return true;
     if (path !== "/" && location.pathname.startsWith(path)) return true;
     return false;
   };
 
   const closeMenu = () => setMobileMenuOpen(false);
+
+  const handleHomeClick = (e) => {
+    closeMenu();
+    if (location.pathname === "/") {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (window.location.hash) {
+        window.history.pushState(null, "", "/");
+      }
+    } else {
+      navigate("/");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const handleBrowseJobsClick = (e) => {
     closeMenu();
@@ -63,7 +77,7 @@ const Navbar = () => {
           {/* Brand Logo */}
           <Link
             to="/"
-            onClick={closeMenu}
+            onClick={handleHomeClick}
             className="flex items-center space-x-2.5 group"
           >
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
@@ -83,6 +97,7 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-1 lg:space-x-2">
             <Link
               to="/"
+              onClick={handleHomeClick}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive("/")
                   ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50"
@@ -192,7 +207,7 @@ const Navbar = () => {
           <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
             <Link
               to="/"
-              onClick={closeMenu}
+              onClick={handleHomeClick}
               className={`block px-3 py-2 rounded-lg text-base font-medium ${
                 isActive("/")
                   ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400"
