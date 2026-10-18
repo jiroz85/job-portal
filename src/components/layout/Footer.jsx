@@ -38,17 +38,17 @@ const Footer = () => {
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link to="/#featured-jobs" className="hover:text-blue-400 transition-colors">
+                <Link to="/#browse-jobs" className="hover:text-blue-400 transition-colors">
                   Browse All Jobs
                 </Link>
               </li>
               <li>
-                <Link to="/jobs?type=Remote" className="hover:text-blue-400 transition-colors">
+                <Link to="/?type=Remote#browse-jobs" className="hover:text-blue-400 transition-colors">
                   Remote Opportunities
                 </Link>
               </li>
               <li>
-                <Link to="/jobs?type=Full-time" className="hover:text-blue-400 transition-colors">
+                <Link to="/?type=Full-time#browse-jobs" className="hover:text-blue-400 transition-colors">
                   Full-Time Positions
                 </Link>
               </li>

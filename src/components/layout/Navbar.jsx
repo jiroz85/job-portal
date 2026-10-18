@@ -60,12 +60,15 @@ const Navbar = () => {
     closeMenu();
     if (location.pathname === "/") {
       e.preventDefault();
-      const target = document.getElementById("featured-jobs");
+      const target =
+        document.getElementById("browse-jobs") ||
+        document.getElementById("featured-jobs");
       if (target) {
         target.scrollIntoView({ behavior: "smooth" });
+        window.history.pushState(null, "", "/#browse-jobs");
       }
     } else {
-      navigate("/#featured-jobs");
+      navigate("/#browse-jobs");
     }
   };
 
@@ -109,10 +112,10 @@ const Navbar = () => {
             </Link>
 
             <Link
-              to="/#featured-jobs"
+              to="/#browse-jobs"
               onClick={handleBrowseJobsClick}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                location.hash === "#featured-jobs"
+                location.hash === "#browse-jobs" || location.hash === "#featured-jobs"
                   ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50"
                   : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800/60"
               }`}
@@ -219,10 +222,10 @@ const Navbar = () => {
             </Link>
 
             <Link
-              to="/#featured-jobs"
+              to="/#browse-jobs"
               onClick={handleBrowseJobsClick}
               className={`block px-3 py-2 rounded-lg text-base font-medium ${
-                location.hash === "#featured-jobs"
+                location.hash === "#browse-jobs" || location.hash === "#featured-jobs"
                   ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400"
                   : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}

@@ -539,7 +539,7 @@ const UserDashboard = () => {
                   </p>
                   <div className="mt-4">
                     <Link
-                      to="/jobs"
+                      to="/#browse-jobs"
                       className="inline-flex items-center px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
                     >
                       Browse Jobs
@@ -561,7 +561,7 @@ const UserDashboard = () => {
                   </p>
                 </div>
                 <Link
-                  to="/jobs"
+                  to="/#browse-jobs"
                   className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   View All ({publishedJobs.length})
@@ -783,7 +783,7 @@ const UserDashboard = () => {
                 </div>
                 {resolvedSavedJobs.length > 0 && (
                   <Link
-                    to="/jobs"
+                    to="/#browse-jobs"
                     className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
                   >
                     Browse More Opportunities &rarr;
@@ -815,7 +815,7 @@ const UserDashboard = () => {
                   Bookmark interesting job postings while exploring to review or apply to them later.
                 </p>
                 <Link
-                  to="/jobs"
+                  to="/#browse-jobs"
                   className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
                 >
                   Explore Active Jobs
@@ -841,7 +841,7 @@ const UserDashboard = () => {
                   </p>
                 </div>
                 <Link
-                  to="/jobs"
+                  to="/#browse-jobs"
                   className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
                 >
                   View All Platform Jobs &rarr;
@@ -886,7 +886,7 @@ const UserDashboard = () => {
                   New job openings will appear here as employers publish new positions.
                 </p>
                 <Link
-                  to="/jobs"
+                  to="/#browse-jobs"
                   className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
                 >
                   Browse Job Listings

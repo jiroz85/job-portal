@@ -13,7 +13,6 @@ import EmployerRoute from "./components/auth/EmployerRoute";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import HomePage from "./pages/HomePage";
-import JobsPage from "./pages/JobsPage";
 import JobDetailPage from "./pages/JobDetailPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -65,7 +64,7 @@ function App() {
                       <main>
                         <Routes>
                           <Route path="/" element={<HomePage />} />
-                          <Route path="/jobs" element={<JobsPage />} />
+                          <Route path="/jobs" element={<Navigate to="/#browse-jobs" replace />} />
                           <Route path="/jobs/:id" element={<JobDetailPage />} />
                           <Route path="/login" element={<Login />} />
                           <Route path="/register" element={<Register />} />

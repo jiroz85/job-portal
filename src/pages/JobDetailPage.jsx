@@ -333,7 +333,7 @@ const JobDetailPage = () => {
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              to="/jobs"
+              to="/#browse-jobs"
               className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
             >
               <FaArrowLeft className="mr-2" /> Browse All Jobs
@@ -358,7 +358,7 @@ const JobDetailPage = () => {
         {/* Navigation Breadcrumb / Back button */}
         <div className="flex items-center justify-between mb-6">
           <Link
-            to="/jobs"
+            to="/#browse-jobs"
             className="inline-flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           >
             <FaArrowLeft className="mr-2" /> Back to Jobs

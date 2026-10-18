@@ -6,7 +6,6 @@ import PermissionGuard from "../components/auth/PermissionGuard";
 
 // Public Routes
 import HomePage from "../pages/HomePage";
-import JobsPage from "../pages/JobsPage";
 import JobDetailPage from "../pages/JobDetailPage";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
@@ -44,7 +43,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<HomePage />} />
-      <Route path="/jobs" element={<JobsPage />} />
+      <Route path="/jobs" element={<Navigate to="/#browse-jobs" replace />} />
       <Route path="/jobs/:id" element={<JobDetailPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
