@@ -8,8 +8,15 @@ const getAuthHeaders = () => {
 
 export const applicationService = {
   // Get all applications (admin/employer)
-  getAllApplications: async (params = {}) => {
+  getAllApplications: async (filters = {}) => {
     try {
+      const params = {};
+      if (filters.page) params.page = filters.page;
+      if (filters.limit) params.limit = filters.limit;
+      if (filters.search && filters.search.trim()) params.search = filters.search.trim();
+      if (filters.status && filters.status !== "all") params.status = filters.status;
+      if (filters.jobId && filters.jobId !== "all") params.jobId = filters.jobId;
+
       const response = await axios.get(`${API_BASE_URL}/applications`, {
         params,
         headers: {
@@ -103,6 +110,17 @@ export const applicationService = {
       window.URL.revokeObjectURL(url);
       return true;
     } catch (error) {
+      if (error.response && error.response.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const parsed = JSON.parse(text);
+          throw new Error(parsed.error || "Failed to download resume");
+        } catch (e) {
+          if (e.message && e.message !== "Failed to download resume") {
+            throw e;
+          }
+        }
+      }
       console.error("Error downloading application resume:", error);
       throw error;
     }
@@ -144,7 +162,10 @@ export const applicationService = {
   getApplicationsByJobId: async (jobId) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/applications?jobId=${jobId}`
+        `${API_BASE_URL}/applications?jobId=${jobId}`,
+        {
+          headers: getAuthHeaders(),
+        }
       );
       return response.data;
     } catch (error) {

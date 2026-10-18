@@ -7,11 +7,13 @@ const userApi = {
     try {
       const params = new URLSearchParams();
 
-      if (filters.role) params.append("role", filters.role);
-      if (filters.status) params.append("status", filters.status);
-      if (filters.search) params.append("search", filters.search);
+      if (filters.role && filters.role !== "all") params.append("role", filters.role);
+      if (filters.status && filters.status !== "all") params.append("status", filters.status);
+      if (filters.search && filters.search.trim()) params.append("search", filters.search.trim());
       if (filters.page) params.append("page", filters.page);
       if (filters.limit) params.append("limit", filters.limit);
+      if (filters.sortBy) params.append("sortBy", filters.sortBy);
+      if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
 
       const response = await axios.get(`${API_BASE_URL}/api/users?${params}`, {
         headers: {
@@ -21,8 +23,15 @@ const userApi = {
 
       // Handle the backend response format: { success: true, data: { users: [], pagination: {} } }
       return {
+        success: true,
         data: response.data.data?.users || [],
-        pagination: response.data.data?.pagination || {},
+        pagination: response.data.data?.pagination || {
+          currentPage: 1,
+          totalPages: 1,
+          totalUsers: (response.data.data?.users || []).length,
+          hasNext: false,
+          hasPrev: false,
+        },
       };
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -41,6 +50,24 @@ const userApi = {
       return response.data;
     } catch (error) {
       console.error("Error fetching user:", error);
+      throw error;
+    }
+  },
+
+  // Get user activity (admin only)
+  getUserActivity: async (userId) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/users/${userId}/activity`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching user activity:", error);
       throw error;
     }
   },
@@ -169,19 +196,35 @@ const userApi = {
     }
   },
 
-  // Get user statistics
-  getUserStats: async () => {
+  // Get user and platform statistics (admin only)
+  getUserStatistics: async (filters = {}) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/users/stats`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const params = new URLSearchParams();
+      if (filters.dateRange && filters.dateRange !== "all") {
+        params.append("dateRange", filters.dateRange);
+      }
+      if (filters.startDate) params.append("startDate", filters.startDate);
+      if (filters.endDate) params.append("endDate", filters.endDate);
+
+      const queryString = params.toString() ? `?${params.toString()}` : "";
+      const response = await axios.get(
+        `${API_BASE_URL}/api/users/statistics${queryString}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
       return response.data;
     } catch (error) {
-      console.error("Error fetching user stats:", error);
+      console.error("Error fetching user statistics:", error);
       throw error;
     }
+  },
+
+  // Alias for backward compatibility
+  getUserStats: async (filters = {}) => {
+    return userApi.getUserStatistics(filters);
   },
 
   // Search users

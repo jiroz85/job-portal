@@ -58,16 +58,28 @@ const ManageJobs = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
 
-  // Close dropdown menu on outside click
+  // Close dropdown menu on outside click and handle Escape key
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (!e.target.closest(".action-menu-container")) {
         setActionMenuJobId(null);
       }
     };
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setActionMenuJobId(null);
+        if (!isDeleting) {
+          setJobToDelete(null);
+        }
+      }
+    };
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, []);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isDeleting]);
 
   // Fetch real jobs and applications from backend
   const fetchEmployerData = useCallback(async (isManual = false) => {

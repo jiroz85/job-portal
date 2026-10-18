@@ -19,8 +19,17 @@ api.interceptors.request.use((config) => {
 
 export const jobApi = {
   // Get all jobs (admin)
-  getAllJobsAdmin: async (params = {}) => {
+  getAllJobsAdmin: async (filters = {}) => {
     try {
+      const params = {};
+      if (filters.page) params.page = filters.page;
+      if (filters.limit) params.limit = filters.limit;
+      if (filters.search && filters.search.trim()) params.search = filters.search.trim();
+      if (filters.status && filters.status !== "all") params.status = filters.status;
+      if (filters.approvalStatus && filters.approvalStatus !== "all") {
+        params.approvalStatus = filters.approvalStatus;
+      }
+
       const response = await api.get("/jobs/all", { params });
       return response.data;
     } catch (error) {

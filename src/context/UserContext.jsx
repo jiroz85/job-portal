@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../utils/apiConfig";
@@ -19,6 +20,13 @@ export const useUsers = () => {
 
 export const UserProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalUsers: 0,
+    hasNext: false,
+    hasPrev: false,
+  });
   const [userStats, setUserStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -33,24 +41,47 @@ export const UserProvider = ({ children }) => {
     };
   };
 
-  // Fetch all users
+  // Fetch all users with optional server-side filtering & pagination
   const fetchUsers = async (params = {}) => {
     setLoading(true);
     setError(null);
     try {
+      const cleanParams = {};
+      if (params.page) cleanParams.page = params.page;
+      if (params.limit) cleanParams.limit = params.limit;
+      if (params.search && params.search.trim()) cleanParams.search = params.search.trim();
+      if (params.role && params.role !== "all") cleanParams.role = params.role;
+      if (params.status && params.status !== "all") cleanParams.status = params.status;
+      if (params.sortBy) cleanParams.sortBy = params.sortBy;
+      if (params.sortOrder) cleanParams.sortOrder = params.sortOrder;
+
       const response = await api.get("/api/users", {
         ...getAuthConfig(),
-        params,
+        params: cleanParams,
       });
 
-      // Handle different response formats from backend
+      // Handle response formats from backend
       const usersData =
         response.data?.data?.users ||
         response.data?.users ||
         response.data ||
         [];
+
+      const paginationData = response.data?.data?.pagination || {
+        currentPage: cleanParams.page || 1,
+        totalPages: 1,
+        totalUsers: usersData.length,
+        hasNext: false,
+        hasPrev: false,
+      };
+
       setUsers(usersData);
-      return response.data;
+      setPagination(paginationData);
+      return {
+        success: true,
+        data: usersData,
+        pagination: paginationData,
+      };
     } catch (err) {
       const errorMessage = err.response?.data?.error || "Failed to fetch users";
       setError(errorMessage);
@@ -256,6 +287,7 @@ export const UserProvider = ({ children }) => {
 
   const value = {
     users,
+    pagination,
     userStats,
     loading,
     error,
@@ -268,6 +300,7 @@ export const UserProvider = ({ children }) => {
     updateUserStatus,
     deleteUser,
     getAllUsers,
+    getPagination: () => pagination,
     getUserStatistics,
   };
 

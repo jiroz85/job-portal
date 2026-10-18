@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 
 /**
@@ -11,14 +11,15 @@ import useAuth from "../../hooks/useAuth";
 const AdminRoute = ({ children, redirectTo = "/dashboard" }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Show loading spinner while checking authentication
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 transition-colors">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Checking permissions...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">Checking permissions...</p>
         </div>
       </div>
     );
@@ -32,11 +33,11 @@ const AdminRoute = ({ children, redirectTo = "/dashboard" }) => {
   // Redirect to dashboard if authenticated but not admin
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8">
-          <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 transition-colors">
+        <div className="text-center p-8 max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
             <svg
-              className="w-8 h-8 text-red-600"
+              className="w-8 h-8 text-red-600 dark:text-red-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -49,15 +50,16 @@ const AdminRoute = ({ children, redirectTo = "/dashboard" }) => {
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Access Denied
           </h2>
-          <p className="text-gray-600 mb-6">
-            You don't have permission to access this admin area.
+          <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
+            You don't have permission to access this administrator area.
           </p>
           <button
-            onClick={() => (window.location.href = redirectTo)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            type="button"
+            onClick={() => navigate(redirectTo)}
+            className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             Go to Dashboard
           </button>

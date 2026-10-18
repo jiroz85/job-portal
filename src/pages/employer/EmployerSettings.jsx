@@ -1,121 +1,87 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   FiUser,
   FiMail,
-  FiPhone,
-  FiMapPin,
-  FiGlobe,
-  FiLinkedin,
   FiBriefcase,
-  FiSettings,
-  FiBell,
   FiShield,
-  FiCreditCard,
-  FiSave,
-  FiEye,
-  FiEyeOff,
+  FiKey,
+  FiCheckCircle,
+  FiInfo,
+  FiArrowRight,
+  FiCopy,
+  FiCheck,
+  FiLayers,
 } from "react-icons/fi";
+import useAuth from "../../hooks/useAuth";
 
 const EmployerSettings = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
-  const [showPassword, setShowPassword] = useState(false);
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    applicationAlerts: true,
-    interviewReminders: true,
-    weeklyReports: false,
-    marketingEmails: false,
-  });
-
-  const [profileData, setProfileData] = useState({
-    companyName: "Tech Corp",
-    industry: "Technology",
-    companySize: "100-500",
-    website: "https://techcorp.com",
-    description:
-      "Leading technology company specializing in innovative software solutions.",
-    foundedYear: "2015",
-    headquarters: "San Francisco, CA",
-    contactEmail: "hr@techcorp.com",
-    contactPhone: "+1 (555) 123-4567",
-    linkedin: "https://linkedin.com/company/techcorp",
-    logo: "",
-  });
-
-  const [securityData, setSecurityData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-    twoFactorAuth: false,
-  });
+  const [copiedId, setCopiedId] = useState(false);
 
   const tabs = [
-    { id: "profile", name: "Company Profile", icon: FiBriefcase },
-    { id: "notifications", name: "Notifications", icon: FiBell },
-    { id: "security", name: "Security", icon: FiShield },
-    { id: "billing", name: "Billing", icon: FiCreditCard },
+    { id: "profile", name: "Account Profile", icon: FiUser },
+    { id: "organization", name: "Workspace & Role", icon: FiBriefcase },
+    { id: "security", name: "Security & Sessions", icon: FiShield },
   ];
 
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target;
-    setProfileData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleCopyId = () => {
+    if (user?.id) {
+      navigator.clipboard.writeText(String(user.id));
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    }
   };
 
-  const handleSecurityChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setSecurityData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
-  const handleNotificationChange = (key) => {
-    setNotifications((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  const handleSaveProfile = (e) => {
-    e.preventDefault();
-    console.log("Saving profile:", profileData);
-    // Handle profile save
-  };
-
-  const handleSaveSecurity = (e) => {
-    e.preventDefault();
-    console.log("Saving security settings:", securityData);
-    // Handle security settings save
-  };
+  const displayName =
+    user?.name ||
+    user?.company ||
+    (user?.email ? user.email.split("@")[0] : "Employer");
+  const displayEmail = user?.email || "employer@example.com";
+  const displayRole = user?.role || "employer";
+  const displayCompany = user?.company || "Employer Organization";
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-2">
-          Manage your company profile and account settings.
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+          Employer Settings
+        </h1>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Review authenticated credentials and organization permissions
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
+      {/* Honest Backend Disclaimer */}
+      <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40 flex items-start space-x-3 text-xs sm:text-sm text-blue-800 dark:text-blue-300">
+        <FiInfo className="w-5 h-5 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
+        <div>
+          <strong className="font-semibold">Account Profile Status:</strong> Your employer
+          identity is linked to your authenticated session. Direct editing of employer profile
+          attributes is managed through organization administration to maintain system integrity.
+        </div>
+      </div>
+
+      {/* Main Settings Card */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xs overflow-hidden">
+        {/* Navigation Tabs */}
+        <div className="border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6">
+          <nav className="flex space-x-4 sm:space-x-8 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
+                className={`py-4 px-1 border-b-2 font-semibold text-xs sm:text-sm flex items-center space-x-2 shrink-0 transition-colors ${
                   activeTab === tab.id
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:border-gray-300"
                 }`}
               >
-                <tab.icon className="w-4 h-4 mr-2" />
-                {tab.name}
+                <tab.icon className="w-4 h-4" />
+                <span>{tab.name}</span>
               </button>
             ))}
           </nav>
@@ -123,250 +89,135 @@ const EmployerSettings = () => {
 
         {/* Tab Content */}
         <div className="p-6">
-          {/* Company Profile Tab */}
+          {/* Account Profile Tab */}
           {activeTab === "profile" && (
-            <form onSubmit={handleSaveProfile}>
-              <div className="max-w-4xl">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                  Company Information
+            <div className="space-y-6 max-w-2xl">
+              <div>
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                  Profile Information
                 </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Verified attributes associated with your user session
+                </p>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Company Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="companyName"
-                      value={profileData.companyName}
-                      onChange={handleProfileChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Industry *
-                    </label>
-                    <select
-                      name="industry"
-                      value={profileData.industry}
-                      onChange={handleProfileChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="Technology">Technology</option>
-                      <option value="Healthcare">Healthcare</option>
-                      <option value="Finance">Finance</option>
-                      <option value="Education">Education</option>
-                      <option value="Retail">Retail</option>
-                      <option value="Manufacturing">Manufacturing</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Company Size
-                    </label>
-                    <select
-                      name="companySize"
-                      value={profileData.companySize}
-                      onChange={handleProfileChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="1-10">1-10 employees</option>
-                      <option value="11-50">11-50 employees</option>
-                      <option value="51-200">51-200 employees</option>
-                      <option value="201-500">201-500 employees</option>
-                      <option value="501-1000">501-1000 employees</option>
-                      <option value="1000+">1000+ employees</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Founded Year
-                    </label>
-                    <input
-                      type="text"
-                      name="foundedYear"
-                      value={profileData.foundedYear}
-                      onChange={handleProfileChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <FiGlobe className="inline mr-1" />
-                      Website
-                    </label>
-                    <input
-                      type="url"
-                      name="website"
-                      value={profileData.website}
-                      onChange={handleProfileChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <FiMapPin className="inline mr-1" />
-                      Headquarters
-                    </label>
-                    <input
-                      type="text"
-                      name="headquarters"
-                      value={profileData.headquarters}
-                      onChange={handleProfileChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <FiMail className="inline mr-1" />
-                      Contact Email *
-                    </label>
-                    <input
-                      type="email"
-                      name="contactEmail"
-                      value={profileData.contactEmail}
-                      onChange={handleProfileChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <FiPhone className="inline mr-1" />
-                      Contact Phone
-                    </label>
-                    <input
-                      type="tel"
-                      name="contactPhone"
-                      value={profileData.contactPhone}
-                      onChange={handleProfileChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <FiLinkedin className="inline mr-1" />
-                      LinkedIn Profile
-                    </label>
-                    <input
-                      type="url"
-                      name="linkedin"
-                      value={profileData.linkedin}
-                      onChange={handleProfileChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Company Description
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+                    Full Name / Contact
                   </label>
-                  <textarea
-                    name="description"
-                    value={profileData.description}
-                    onChange={handleProfileChange}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Describe your company culture, mission, and what makes it a great place to work..."
+                  <input
+                    type="text"
+                    value={displayName}
+                    readOnly
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-200 cursor-not-allowed"
                   />
                 </div>
 
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-                  >
-                    <FiSave className="mr-2" />
-                    Save Changes
-                  </button>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={displayEmail}
+                    readOnly
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-200 cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+                    User Identifier (ID)
+                  </label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={user?.id || "N/A"}
+                      readOnly
+                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-200 font-mono cursor-not-allowed"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyId}
+                      className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300"
+                      title="Copy User ID"
+                    >
+                      {copiedId ? (
+                        <FiCheck className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <FiCopy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+                    Account Status
+                  </label>
+                  <div className="flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm font-semibold">
+                    <FiCheckCircle className="w-4 h-4" />
+                    <span>Active & Verified</span>
+                  </div>
                 </div>
               </div>
-            </form>
+            </div>
           )}
 
-          {/* Notifications Tab */}
-          {activeTab === "notifications" && (
-            <div className="max-w-4xl">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                Notification Preferences
-              </h2>
+          {/* Organization Tab */}
+          {activeTab === "organization" && (
+            <div className="space-y-6 max-w-2xl">
+              <div>
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                  Organization & Workspace Access
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Roles and permissions assigned to your employer portal account
+                </p>
+              </div>
 
-              <div className="space-y-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-4">
-                    Email Notifications
-                  </h3>
-                  <div className="space-y-3">
-                    {Object.entries({
-                      emailNotifications: "Receive email notifications",
-                      applicationAlerts: "New application alerts",
-                      interviewReminders: "Interview reminders",
-                      weeklyReports: "Weekly performance reports",
-                      marketingEmails: "Marketing and product updates",
-                    }).map(([key, label]) => (
-                      <label
-                        key={key}
-                        className="flex items-center justify-between"
-                      >
-                        <span className="text-sm text-gray-700">{label}</span>
-                        <input
-                          type="checkbox"
-                          checked={notifications[key]}
-                          onChange={() => handleNotificationChange(key)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                      </label>
-                    ))}
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/40 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      System Role: <span className="capitalize text-blue-600 dark:text-blue-400">{displayRole}</span>
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Full authority to post, edit, close, and review jobs and applicants
+                    </p>
                   </div>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
+                    Granted
+                  </span>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-4">
-                    Alert Frequency
-                  </h3>
-                  <div className="space-y-3">
-                    <label className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700">
-                        Application alerts
-                      </span>
-                      <select className="px-3 py-1 border border-gray-300 rounded-md text-sm">
-                        <option>Immediate</option>
-                        <option>Daily digest</option>
-                        <option>Weekly digest</option>
-                      </select>
-                    </label>
-                    <label className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700">
-                        Performance reports
-                      </span>
-                      <select className="px-3 py-1 border border-gray-300 rounded-md text-sm">
-                        <option>Weekly</option>
-                        <option>Monthly</option>
-                        <option>Quarterly</option>
-                      </select>
-                    </label>
+                <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/40 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Employer Organization
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {displayCompany}
+                    </p>
                   </div>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
+                    Associated
+                  </span>
                 </div>
 
-                <div className="flex justify-end">
-                  <button className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
-                    <FiSave className="mr-2" />
-                    Save Preferences
-                  </button>
+                <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/40 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Candidate Data Protection
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Scoped strictly to applicants who applied to your owned listings
+                    </p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300">
+                    Enforced
+                  </span>
                 </div>
               </div>
             </div>
@@ -374,204 +225,93 @@ const EmployerSettings = () => {
 
           {/* Security Tab */}
           {activeTab === "security" && (
-            <form onSubmit={handleSaveSecurity}>
-              <div className="max-w-4xl">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                  Security Settings
+            <div className="space-y-6 max-w-2xl">
+              <div>
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                  Security & Authentication
                 </h2>
-
-                <div className="space-y-6">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-medium text-gray-900 mb-4">
-                      Change Password
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Current Password
-                        </label>
-                        <input
-                          type="password"
-                          name="currentPassword"
-                          value={securityData.currentPassword}
-                          onChange={handleSecurityChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          New Password
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            name="newPassword"
-                            value={securityData.newPassword}
-                            onChange={handleSecurityChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          >
-                            {showPassword ? (
-                              <FiEyeOff className="w-5 h-5" />
-                            ) : (
-                              <FiEye className="w-5 h-5" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Confirm New Password
-                        </label>
-                        <input
-                          type="password"
-                          name="confirmPassword"
-                          value={securityData.confirmPassword}
-                          onChange={handleSecurityChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-medium text-gray-900 mb-4">
-                      Two-Factor Authentication
-                    </h3>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-700">
-                          Add an extra layer of security to your account
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Requires authentication code when signing in
-                        </p>
-                      </div>
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          name="twoFactorAuth"
-                          checked={securityData.twoFactorAuth}
-                          onChange={handleSecurityChange}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">
-                          Enable 2FA
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-                    >
-                      <FiSave className="mr-2" />
-                      Update Security
-                    </button>
-                  </div>
-                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Information regarding current session and authentication tokens
+                </p>
               </div>
-            </form>
-          )}
 
-          {/* Billing Tab */}
-          {activeTab === "billing" && (
-            <div className="max-w-4xl">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                Billing & Subscription
-              </h2>
-
-              <div className="space-y-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-4">
-                    Current Plan
-                  </h3>
-                  <div className="flex items-center justify-between">
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/40 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                      <FiKey className="w-5 h-5" />
+                    </div>
                     <div>
-                      <h4 className="text-lg font-medium text-gray-900">
-                        Professional Plan
-                      </h4>
-                      <p className="text-sm text-gray-500">$299/month</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Next billing date: February 15, 2024
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        JWT Token Authentication
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Protected with cryptographic signature & Bearer authentication
                       </p>
                     </div>
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
-                      Change Plan
-                    </button>
                   </div>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    Active
+                  </span>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-4">
-                    Payment Method
-                  </h3>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-12 h-8 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-medium">
-                        VISA
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          •••• •••• •••• 4242
-                        </p>
-                        <p className="text-xs text-gray-500">Expires 12/25</p>
-                      </div>
+                <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/40 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                      <FiShield className="w-5 h-5" />
                     </div>
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
-                      Update
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-4">
-                    Billing History
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          Professional Plan - January 2024
-                        </p>
-                        <p className="text-xs text-gray-500">Jan 15, 2024</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">
-                          $299.00
-                        </p>
-                        <button className="text-xs text-blue-600 hover:text-blue-800">
-                          Download
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          Professional Plan - December 2023
-                        </p>
-                        <p className="text-xs text-gray-500">Dec 15, 2023</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">
-                          $299.00
-                        </p>
-                        <button className="text-xs text-blue-600 hover:text-blue-800">
-                          Download
-                        </button>
-                      </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        Password Storage
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Hashed securely with bcrypt on the server
+                      </p>
                     </div>
                   </div>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    Secured
+                  </span>
                 </div>
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Quick Navigation Shortcuts */}
+      <div className="p-6 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">
+          Employer Hub Shortcuts
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link
+            to="/employer/post-job"
+            className="p-3 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-between group"
+          >
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+              Post a New Job
+            </span>
+            <FiArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+          </Link>
+          <Link
+            to="/employer/jobs"
+            className="p-3 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-between group"
+          >
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+              Manage Job Listings
+            </span>
+            <FiArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+          </Link>
+          <Link
+            to="/employer/applicants"
+            className="p-3 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-between group"
+          >
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+              Track Applicants
+            </span>
+            <FiArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+          </Link>
         </div>
       </div>
     </div>

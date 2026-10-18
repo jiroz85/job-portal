@@ -27,12 +27,14 @@ const auditService = {
     try {
       const params = new URLSearchParams();
 
-      if (filters.action) params.append("action", filters.action);
-      if (filters.userId) params.append("userId", filters.userId);
+      if (filters.action && filters.action !== "all") params.append("action", filters.action);
+      if (filters.userId && filters.userId !== "all") params.append("userId", filters.userId);
       if (filters.startDate) params.append("startDate", filters.startDate);
       if (filters.endDate) params.append("endDate", filters.endDate);
       if (filters.page) params.append("page", filters.page);
       if (filters.limit) params.append("limit", filters.limit);
+      if (filters.sortBy) params.append("sortBy", filters.sortBy);
+      if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
 
       const response = await axios.get(
         `${API_BASE_URL}/api/audit/logs?${params}`,
@@ -94,8 +96,8 @@ const auditService = {
     try {
       const params = new URLSearchParams();
 
-      if (filters.action) params.append("action", filters.action);
-      if (filters.userId) params.append("userId", filters.userId);
+      if (filters.action && filters.action !== "all") params.append("action", filters.action);
+      if (filters.userId && filters.userId !== "all") params.append("userId", filters.userId);
       if (filters.startDate) params.append("startDate", filters.startDate);
       if (filters.endDate) params.append("endDate", filters.endDate);
       if (filters.format) params.append("format", filters.format);

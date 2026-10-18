@@ -26,6 +26,8 @@ import EmployerWorkflowDemo from "../../components/employer/EmployerWorkflowDemo
 const EmployerDashboard = () => {
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [serverTotalApplications, setServerTotalApplications] = useState(null);
+  const [serverTotalJobs, setServerTotalJobs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -38,7 +40,7 @@ const EmployerDashboard = () => {
     }
 
     try {
-      // Both endpoints return { success: true, data: [...] }
+      // Both endpoints return { success: true, data: [...], pagination: { total: number } }
       const [jobsResponse, applicationsResponse] = await Promise.all([
         jobService.getMyJobs({ limit: 100 }),
         applicationService.getAllApplications({ limit: 100 }),
@@ -55,6 +57,20 @@ const EmployerDashboard = () => {
 
       setJobs(fetchedJobs);
       setApplications(fetchedApplications);
+
+      // Extract verified complete employer-scoped database totals from pagination metadata
+      if (typeof applicationsResponse?.pagination?.total === "number") {
+        setServerTotalApplications(applicationsResponse.pagination.total);
+      } else {
+        setServerTotalApplications(null);
+      }
+
+      if (typeof jobsResponse?.pagination?.total === "number") {
+        setServerTotalJobs(jobsResponse.pagination.total);
+      } else {
+        setServerTotalJobs(null);
+      }
+
       setError(null);
     } catch (err) {
       console.error("Error fetching employer dashboard data:", err);
@@ -116,13 +132,28 @@ const EmployerDashboard = () => {
     };
   }, [loadDashboardData]);
 
+  // ESC key listener to dismiss demo modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && showWorkflowDemo) {
+        setShowWorkflowDemo(false);
+      }
+    };
+    if (showWorkflowDemo) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showWorkflowDemo]);
+
   const handleManualRefresh = () => {
     loadDashboardData(true);
   };
 
   // Derive genuine metrics from real data
   const metrics = useMemo(() => {
-    const totalJobs = jobs.length;
+    // Total jobs: prefer validated employer-scoped database total from pagination, fallback to loaded array length
+    const totalJobs =
+      typeof serverTotalJobs === "number" ? serverTotalJobs : jobs.length;
     const activeJobs = jobs.filter(
       (job) => job.status === "active" || job.status === "Published"
     ).length;
@@ -133,7 +164,13 @@ const EmployerDashboard = () => {
       (job) => job.status === "Closed" || job.status === "filled"
     ).length;
 
-    const totalApplications = applications.length;
+    // Total applications: prefer validated employer-scoped database total from pagination, fallback to loaded array length
+    const totalApplications =
+      typeof serverTotalApplications === "number"
+        ? serverTotalApplications
+        : applications.length;
+    const isApplicationsTruncated = totalApplications > applications.length;
+
     const pendingReviews = applications.filter(
       (app) => app.status === "pending" || app.status === "under_review"
     ).length;
@@ -154,12 +191,14 @@ const EmployerDashboard = () => {
       draftJobs,
       closedJobs,
       totalApplications,
+      isApplicationsTruncated,
+      loadedApplicationsCount: applications.length,
       pendingReviews,
       interviews,
       shortlisted,
       offersOrHired,
     };
-  }, [jobs, applications]);
+  }, [jobs, applications, serverTotalJobs, serverTotalApplications]);
 
   // Derive recent applicants (most recent applications first)
   const recentApplicants = useMemo(() => {
@@ -447,7 +486,13 @@ const EmployerDashboard = () => {
                 {metrics.totalApplications}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {metrics.shortlisted} shortlisted / {metrics.offersOrHired} hired
+                {metrics.isApplicationsTruncated ? (
+                  <span>
+                    {metrics.shortlisted} shortlisted / {metrics.offersOrHired} hired (from latest {metrics.loadedApplicationsCount})
+                  </span>
+                ) : (
+                  <span>{metrics.shortlisted} shortlisted / {metrics.offersOrHired} hired</span>
+                )}
               </p>
             </div>
           </Link>
@@ -522,7 +567,9 @@ const EmployerDashboard = () => {
                 Recent Applicants
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Latest submissions across all your posted positions
+                {metrics.isApplicationsTruncated
+                  ? `Showing latest ${metrics.loadedApplicationsCount} of ${metrics.totalApplications} candidate submissions`
+                  : "Latest submissions across all your posted positions"}
               </p>
             </div>
             <Link
