@@ -22,7 +22,7 @@ export const checkAuth = async () => {
     });
 
     return response.data;
-  } catch (error) {
+  } catch {
     localStorage.removeItem("token");
     return null;
   }

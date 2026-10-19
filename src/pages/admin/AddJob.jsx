@@ -23,14 +23,14 @@ const AddJob = () => {
     requirements: "",
     responsibilities: "",
     salary: "",
-    experience: "",
+    experience: "Entry Level",
     education: "",
     skills: "",
     benefits: "",
     applicationDeadline: "",
     contactEmail: "",
     contactPhone: "",
-    status: "Draft",
+    status: "Published",
   });
 
   const [errors, setErrors] = useState({});
@@ -236,11 +236,11 @@ const AddJob = () => {
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="">Select Experience</option>
                 <option value="Entry Level">Entry Level</option>
                 <option value="Mid Level">Mid Level</option>
                 <option value="Senior Level">Senior Level</option>
-                <option value="Executive Level">Executive Level</option>
+                <option value="Lead">Lead</option>
+                <option value="Manager">Manager</option>
               </select>
             </div>
           </div>

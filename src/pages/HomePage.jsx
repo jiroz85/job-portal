@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import {
   FaSearch,
   FaMapMarkerAlt,
@@ -222,7 +222,7 @@ const HomePage = () => {
       const matches = jobSalary.match(/\$(\d+)k?/gi);
       if (!matches) return true;
       const last = matches[matches.length - 1];
-      const num = parseInt(last.replace(/[\$kK]/g, "")) * (last.toLowerCase().includes("k") ? 1000 : 1);
+      const num = parseInt(last.replace(/[$kK]/g, "")) * (last.toLowerCase().includes("k") ? 1000 : 1);
       return num >= 200000;
     }
 
@@ -230,11 +230,11 @@ const HomePage = () => {
     if (!jobSalaryMatch) return true;
 
     const jobMin =
-      parseInt(jobSalaryMatch[0].replace(/[\$kK]/g, "")) *
+      parseInt(jobSalaryMatch[0].replace(/[$kK]/g, "")) *
       (jobSalaryMatch[0].toLowerCase().includes("k") ? 1000 : 1);
     const jobMax =
       jobSalaryMatch.length > 1
-        ? parseInt(jobSalaryMatch[1].replace(/[\$kK]/g, "")) *
+        ? parseInt(jobSalaryMatch[1].replace(/[$kK]/g, "")) *
           (jobSalaryMatch[1].toLowerCase().includes("k") ? 1000 : 1)
         : jobMin;
 
