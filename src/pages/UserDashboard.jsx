@@ -484,16 +484,6 @@ const UserDashboard = () => {
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              to="/#browse-jobs"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-colors"
-            >
-              <FiBriefcase className="w-3.5 h-3.5" />
-              <span>Browse Jobs</span>
-            </Link>
-          </div>
         </header>
 
         {/* Dashboard Main Content */}
@@ -626,12 +616,13 @@ const UserDashboard = () => {
                     Explore available listings and apply directly.
                   </p>
                   <div className="mt-4">
-                    <Link
-                      to="/#browse-jobs"
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("recommended")}
                       className="inline-flex items-center px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
                     >
-                      Browse Jobs
-                    </Link>
+                      Explore Recommended Jobs
+                    </button>
                   </div>
                 </div>
               )}
@@ -648,12 +639,13 @@ const UserDashboard = () => {
                     Newly listed vacancies open for applications
                   </p>
                 </div>
-                <Link
-                  to="/#browse-jobs"
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("recommended")}
                   className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   View All ({publishedJobs.length})
-                </Link>
+                </button>
               </div>
 
               {jobsLoading ? (
@@ -852,6 +844,7 @@ const UserDashboard = () => {
             loading={applicationsLoading}
             error={applicationsError}
             onRetry={fetchUserApplications}
+            onExplore={() => setActiveTab("recommended")}
           />
         )}
 
@@ -870,12 +863,13 @@ const UserDashboard = () => {
                   </p>
                 </div>
                 {resolvedSavedJobs.length > 0 && (
-                  <Link
-                    to="/#browse-jobs"
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("recommended")}
                     className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
                   >
-                    Browse More Opportunities &rarr;
-                  </Link>
+                    Explore Recommended Jobs &rarr;
+                  </button>
                 )}
               </div>
             </div>
@@ -902,12 +896,13 @@ const UserDashboard = () => {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
                   Bookmark interesting job postings while exploring to review or apply to them later.
                 </p>
-                <Link
-                  to="/#browse-jobs"
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("recommended")}
                   className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
                 >
-                  Explore Active Jobs
-                </Link>
+                  Explore Recommended Jobs
+                </button>
               </div>
             )}
           </div>
@@ -928,12 +923,6 @@ const UserDashboard = () => {
                       : "Latest published roles from verified organizations"}
                   </p>
                 </div>
-                <Link
-                  to="/#browse-jobs"
-                  className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                >
-                  View All Platform Jobs &rarr;
-                </Link>
               </div>
             </div>
 
@@ -970,15 +959,9 @@ const UserDashboard = () => {
                 <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1.5">
                   No recommendations right now
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
                   New job openings will appear here as employers publish new positions.
                 </p>
-                <Link
-                  to="/#browse-jobs"
-                  className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
-                >
-                  Browse Job Listings
-                </Link>
               </div>
             )}
           </div>

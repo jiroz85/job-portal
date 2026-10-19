@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
 import {
   FiSearch,
   FiBriefcase,
@@ -42,6 +41,7 @@ const ApplicationList = ({
   loading = false,
   error = null,
   onRetry,
+  onExplore,
 }) => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -212,13 +212,16 @@ const ApplicationList = ({
             Find active career opportunities and submit your profile directly to
             hiring managers.
           </p>
-          <Link
-            to="/jobs"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-colors"
-          >
-            <FiBriefcase className="text-xs" />
-            <span>Browse Job Openings</span>
-          </Link>
+          {typeof onExplore === "function" && (
+            <button
+              type="button"
+              onClick={onExplore}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-colors"
+            >
+              <FiBriefcase className="text-xs" />
+              <span>Explore Opportunities</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="text-center py-12 px-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-w-md mx-auto shadow-sm">

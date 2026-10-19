@@ -6,11 +6,8 @@ import {
   FiBookmark,
   FiStar,
   FiFileText,
-  FiSearch,
   FiX,
   FiLogOut,
-  FiExternalLink,
-  FiHome,
 } from "react-icons/fi";
 
 const JobSeekerSidebar = ({
@@ -111,35 +108,6 @@ const JobSeekerSidebar = ({
           >
             <FiX className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Quick Portal Links */}
-        <div className="p-3 border-b border-gray-100 dark:border-gray-700/60 space-y-1">
-          <Link
-            to="/#browse-jobs"
-            className="flex items-center justify-between px-3 py-2 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50/70 dark:bg-blue-950/40 hover:bg-blue-100/70 dark:hover:bg-blue-900/40 rounded-lg transition-colors border border-blue-200/60 dark:border-blue-900/60"
-            onClick={() => {
-              if (isOpen && toggleSidebar) toggleSidebar();
-            }}
-          >
-            <span className="flex items-center gap-2">
-              <FiSearch className="text-xs text-blue-600 dark:text-blue-400" />
-              <span>Browse All Jobs</span>
-            </span>
-            <FiExternalLink className="text-[10px]" />
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center justify-between px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-750 rounded-lg transition-colors"
-            onClick={() => {
-              if (isOpen && toggleSidebar) toggleSidebar();
-            }}
-          >
-            <span className="flex items-center gap-2">
-              <FiHome className="text-xs" />
-              <span>Back to Website</span>
-            </span>
-          </Link>
         </div>
 
         {/* Primary Navigation */}

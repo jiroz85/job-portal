@@ -1,5 +1,4 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import {
   FiBriefcase,
   FiUser,
@@ -7,7 +6,6 @@ import {
   FiCheckCircle,
   FiBookmark,
   FiUpload,
-  FiSearch,
 } from "react-icons/fi";
 
 const DashboardHeader = ({ user, stats, onTabChange }) => {
@@ -61,13 +59,14 @@ const DashboardHeader = ({ user, stats, onTabChange }) => {
               <span>Manage Resumes</span>
             </button>
 
-            <Link
-              to="/jobs"
+            <button
+              type="button"
+              onClick={() => onTabChange("recommended")}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs shadow-sm transition-colors"
             >
-              <FiSearch className="text-sm" />
-              <span>Browse All Jobs</span>
-            </Link>
+              <FiBriefcase className="text-sm" />
+              <span>Explore Opportunities</span>
+            </button>
           </div>
         </div>
       </div>
