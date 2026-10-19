@@ -1,30 +1,20 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   FiBell,
   FiMenu,
   FiSearch,
-  FiUser,
-  FiLogOut,
   FiCheck,
   FiX,
-  FiSettings,
   FiActivity,
-  FiChevronDown,
-  FiGlobe,
 } from "react-icons/fi";
-import useAuth from "../../hooks/useAuth";
 import notificationService from "../../services/notificationService";
 
 const AdminHeader = ({ toggleSidebar }) => {
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const profileRef = useRef(null);
   const notificationRef = useRef(null);
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -50,12 +40,9 @@ const AdminHeader = ({ toggleSidebar }) => {
     };
   }, []);
 
-  // Close dropdowns on outside click or Escape key
+  // Close notifications dropdown on outside click or Escape key
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (profileRef.current && !profileRef.current.contains(event.target)) {
-        setIsProfileOpen(false);
-      }
       if (
         notificationRef.current &&
         !notificationRef.current.contains(event.target)
@@ -65,7 +52,6 @@ const AdminHeader = ({ toggleSidebar }) => {
     };
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
-        setIsProfileOpen(false);
         setIsNotificationOpen(false);
       }
     };
@@ -81,20 +67,6 @@ const AdminHeader = ({ toggleSidebar }) => {
     () => (unreadCount > 0 ? unreadCount : notifications.filter((n) => !n.isRead).length),
     [unreadCount, notifications]
   );
-
-  const getInitials = () => {
-    if (user?.name) {
-      const parts = user.name.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[1][0]).toUpperCase();
-      }
-      return user.name.slice(0, 2).toUpperCase();
-    }
-    if (user?.email) {
-      return user.email.slice(0, 2).toUpperCase();
-    }
-    return "AD";
-  };
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -134,21 +106,11 @@ const AdminHeader = ({ toggleSidebar }) => {
         </div>
 
         <div className="flex items-center space-x-3 sm:space-x-4">
-          <Link
-            to="/"
-            title="View Live Website"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <FiGlobe className="w-3.5 h-3.5" />
-            <span>View Site</span>
-          </Link>
-
           <div className="relative" ref={notificationRef}>
             <button
               type="button"
               onClick={() => {
                 setIsNotificationOpen(!isNotificationOpen);
-                setIsProfileOpen(false);
               }}
               aria-expanded={isNotificationOpen}
               aria-label="Audit activity notifications"
@@ -254,85 +216,6 @@ const AdminHeader = ({ toggleSidebar }) => {
                   >
                     View all notifications →
                   </Link>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="relative" ref={profileRef}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsProfileOpen(!isProfileOpen);
-                setIsNotificationOpen(false);
-              }}
-              aria-expanded={isProfileOpen}
-              aria-label="User menu"
-              className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-200 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <div className="w-8 h-8 rounded-full bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center font-semibold text-xs tracking-wider shadow-xs">
-                {getInitials()}
-              </div>
-              <span className="hidden md:inline-block font-medium text-gray-900 dark:text-gray-100 text-xs">
-                {user?.name || "Admin"}
-              </span>
-              <FiChevronDown className="w-3.5 h-3.5 text-gray-400 hidden sm:inline-block" />
-            </button>
-
-            {isProfileOpen && (
-              <div className="absolute right-0 w-56 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50 divide-y divide-gray-100 dark:divide-gray-700">
-                <div className="px-4 py-2.5">
-                  <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {user?.name || "Administrator"}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                    {user?.email || "admin@system.local"}
-                  </p>
-                  <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300">
-                    Admin Role
-                  </span>
-                </div>
-
-                <div className="py-1">
-                  <Link
-                    to="/"
-                    onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center px-4 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FiGlobe className="w-3.5 h-3.5 mr-2 text-gray-400" />
-                    View Live Website
-                  </Link>
-                  <Link
-                    to="/dashboard"
-                    onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center px-4 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FiUser className="w-3.5 h-3.5 mr-2 text-gray-400" />
-                    Your Profile
-                  </Link>
-                  <Link
-                    to="/admin/settings"
-                    onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center px-4 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FiSettings className="w-3.5 h-3.5 mr-2 text-gray-400" />
-                    Settings
-                  </Link>
-                </div>
-
-                <div className="py-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                      logout();
-                      navigate("/login");
-                    }}
-                    className="flex items-center w-full px-4 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors text-left font-medium"
-                  >
-                    <FiLogOut className="w-3.5 h-3.5 mr-2" />
-                    Sign out
-                  </button>
                 </div>
               </div>
             )}
