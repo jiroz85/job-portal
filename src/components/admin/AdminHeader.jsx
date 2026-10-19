@@ -11,6 +11,7 @@ import {
   FiSettings,
   FiActivity,
   FiChevronDown,
+  FiGlobe,
 } from "react-icons/fi";
 import useAuth from "../../hooks/useAuth";
 import notificationService from "../../services/notificationService";
@@ -133,6 +134,15 @@ const AdminHeader = ({ toggleSidebar }) => {
         </div>
 
         <div className="flex items-center space-x-3 sm:space-x-4">
+          <Link
+            to="/"
+            title="View Live Website"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <FiGlobe className="w-3.5 h-3.5" />
+            <span>View Site</span>
+          </Link>
+
           <div className="relative" ref={notificationRef}>
             <button
               type="button"
@@ -284,6 +294,14 @@ const AdminHeader = ({ toggleSidebar }) => {
                 </div>
 
                 <div className="py-1">
+                  <Link
+                    to="/"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex items-center px-4 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FiGlobe className="w-3.5 h-3.5 mr-2 text-gray-400" />
+                    View Live Website
+                  </Link>
                   <Link
                     to="/dashboard"
                     onClick={() => setIsProfileOpen(false)}

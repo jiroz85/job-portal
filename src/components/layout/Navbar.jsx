@@ -16,6 +16,14 @@ const Navbar = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Hide the public Navbar on dedicated dashboard layouts (Admin and Employer portals)
+  if (
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/employer")
+  ) {
+    return null;
+  }
+
   const handleLogout = () => {
     logout();
     setMobileMenuOpen(false);

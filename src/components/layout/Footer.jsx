@@ -1,7 +1,17 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { FaShieldAlt, FaBolt } from "react-icons/fa";
 
 const Footer = () => {
+  const location = useLocation();
+
+  // Hide the public Footer on dedicated dashboard layouts (Admin and Employer portals)
+  if (
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/employer")
+  ) {
+    return null;
+  }
+
   return (
     <footer className="bg-slate-900 text-slate-300 border-t border-slate-800">
       <div className="container mx-auto px-4 py-12">

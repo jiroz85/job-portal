@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   FiHome,
   FiBriefcase,
@@ -10,6 +11,7 @@ import {
   FiSettings,
   FiBell,
   FiX,
+  FiGlobe,
 } from "react-icons/fi";
 
 const AdminSidebar = ({
@@ -244,6 +246,16 @@ const AdminSidebar = ({
               <FiSettings className="w-5 h-5 mr-3 flex-shrink-0" />
               <span>System Settings</span>
             </button>
+          </li>
+
+          <li className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+            <Link
+              to="/"
+              className="flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors"
+            >
+              <FiGlobe className="w-5 h-5 mr-3 flex-shrink-0" />
+              <span>Back to Website</span>
+            </Link>
           </li>
         </ul>
       </nav>
