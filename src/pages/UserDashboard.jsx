@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FiBriefcase,
   FiUser,
@@ -13,6 +13,7 @@ import {
   FiEye,
   FiStar,
   FiFileText,
+  FiMenu,
 } from "react-icons/fi";
 import useAuth from "../hooks/useAuth";
 import { useJobs } from "../context/JobContext";
@@ -26,9 +27,12 @@ import SavedJobCard from "../components/dashboard/SavedJobCard";
 import RecommendedJobCard from "../components/dashboard/RecommendedJobCard";
 import ResumeManager from "../components/dashboard/ResumeManager";
 import ProfileIntegrityCard from "../components/dashboard/ProfileIntegrityCard";
+import JobSeekerSidebar from "../components/dashboard/JobSeekerSidebar";
 
 const UserDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { getPublishedJobs, loading: jobsLoading } = useJobs();
   const { savedJobs, saveJob, unsaveJob, isJobSaved, getSavedJobsCount } = useSavedJobs();
 
@@ -408,27 +412,111 @@ const UserDashboard = () => {
   };
 
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-12 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        {/* Dashboard Header with KPI summary cards */}
-        <DashboardHeader
-          user={user}
-          stats={stats}
-          onTabChange={setActiveTab}
-        />
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
-        {/* Responsive Dashboard Tabs */}
-        <DashboardTabs
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          counts={{
-            applications: realApplications.length,
-            saved: getSavedJobsCount(),
-            resumes: resumes.length,
-            recommended: recommendedJobs.length,
-          }}
+  const getSectionTitle = () => {
+    switch (activeTab) {
+      case "applications":
+        return "My Applications";
+      case "saved":
+        return "Saved Jobs";
+      case "recommended":
+        return "Recommended For You";
+      case "resumes":
+        return "My Resumes";
+      default:
+        return "Candidate Dashboard";
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+      {/* Mobile sidebar backdrop overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-gray-600/50 dark:bg-gray-900/80 backdrop-blur-sm lg:hidden transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
+      )}
+
+      {/* Professional Candidate Hub Sidebar */}
+      <JobSeekerSidebar
+        isOpen={sidebarOpen}
+        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          setSidebarOpen(false);
+        }}
+        counts={{
+          applications: realApplications.length,
+          saved: getSavedJobsCount(),
+          resumes: resumes.length,
+          recommended: recommendedJobs.length,
+        }}
+        user={user}
+        onLogout={handleLogout}
+      />
+
+      {/* Main Content Area */}
+      <div className="lg:pl-64 flex flex-col min-h-screen">
+        {/* Top Header Bar */}
+        <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="Open sidebar"
+            >
+              <FiMenu className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                {getSectionTitle()}
+              </h1>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 hidden sm:block">
+                Welcome back, {user?.name || "Job Seeker"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/#browse-jobs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-colors"
+            >
+              <FiBriefcase className="w-3.5 h-3.5" />
+              <span>Browse Jobs</span>
+            </Link>
+          </div>
+        </header>
+
+        {/* Dashboard Main Content */}
+        <main className="p-4 sm:p-6 lg:p-8 flex-1">
+          <div className="max-w-7xl mx-auto">
+            {/* Dashboard Header with KPI summary cards */}
+            <DashboardHeader
+              user={user}
+              stats={stats}
+              onTabChange={setActiveTab}
+            />
+
+            {/* Responsive Dashboard Tabs */}
+            <DashboardTabs
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              counts={{
+                applications: realApplications.length,
+                saved: getSavedJobsCount(),
+                resumes: resumes.length,
+                recommended: recommendedJobs.length,
+              }}
+            />
 
         {/* Overview Tab */}
         {activeTab === "overview" && (
@@ -917,6 +1005,8 @@ const UserDashboard = () => {
           </div>
         )}
 
+          </div>
+        </main>
       </div>
     </div>
   );

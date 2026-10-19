@@ -4,10 +4,11 @@ import { FaShieldAlt, FaBolt } from "react-icons/fa";
 const Footer = () => {
   const location = useLocation();
 
-  // Hide the public Footer on dedicated dashboard layouts (Admin and Employer portals)
+  // Hide the public Footer on dedicated dashboard layouts (Admin, Employer, and Job Seeker portals)
   if (
     location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/employer")
+    location.pathname.startsWith("/employer") ||
+    location.pathname.startsWith("/dashboard")
   ) {
     return null;
   }

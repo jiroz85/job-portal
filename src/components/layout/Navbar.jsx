@@ -16,10 +16,11 @@ const Navbar = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Hide the public Navbar on dedicated dashboard layouts (Admin and Employer portals)
+  // Hide the public Navbar on dedicated dashboard layouts (Admin, Employer, and Job Seeker portals)
   if (
     location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/employer")
+    location.pathname.startsWith("/employer") ||
+    location.pathname.startsWith("/dashboard")
   ) {
     return null;
   }
