@@ -9,9 +9,7 @@ export const ThemeProvider = ({ children }) => {
       if (stored === "dark" || stored === "light") {
         return stored;
       }
-      return window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
+      return "light"; // White / Light mode as default
     } catch {
       return "light";
     }
@@ -29,24 +27,6 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
-
-  // Listen to OS preference changes if user hasn't explicitly set a preference in localStorage
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e) => {
-      const stored = localStorage.getItem("jobportal_theme");
-      if (!stored) {
-        const newTheme = e.matches ? "dark" : "light";
-        setThemeState(newTheme);
-        applyTheme(newTheme);
-      }
-    };
-
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", handleChange);
-      return () => mediaQuery.removeEventListener("change", handleChange);
-    }
-  }, []);
 
   const setTheme = (newTheme) => {
     if (newTheme !== "light" && newTheme !== "dark") return;
