@@ -13,6 +13,7 @@ import {
   FiLogOut,
 } from "react-icons/fi";
 import useAuth from "../../hooks/useAuth";
+import ThemeToggle from "../../components/common/ThemeToggle";
 
 const EmployerLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -235,6 +236,7 @@ const EmployerLayout = () => {
 
           {/* Header Right Actions */}
           <div className="flex items-center gap-3">
+            <ThemeToggle size="sm" />
             {location.pathname !== "/employer/post-job" && (
               <Link
                 to="/employer/post-job"

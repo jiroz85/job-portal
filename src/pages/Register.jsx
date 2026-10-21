@@ -5,7 +5,6 @@ import {
   FiLock,
   FiUser,
   FiUserPlus,
-  FiAlertCircle,
   FiEye,
   FiEyeOff,
   FiBriefcase,
@@ -75,12 +74,12 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-950 dark:via-slate-900 dark:to-gray-900 relative overflow-hidden transition-colors">
       {/* Background Elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-400/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-20 left-20 w-72 h-72 bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-400/10 dark:bg-purple-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-400/10 dark:bg-indigo-600/10 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
 
       <div className="relative z-10 min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -89,17 +88,17 @@ const Register = () => {
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-2xl mb-6 transform hover:scale-105 transition-transform duration-300">
               <FiUserPlus className="w-10 h-10 text-white" />
             </div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-2">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
               Create Account
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-600 dark:text-gray-300">
               Join thousands of job seekers and employers
             </p>
-            <p className="mt-4 text-center text-sm text-gray-600">
+            <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
               Already have an account?{" "}
               <Link
                 to="/login"
-                className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors duration-200"
               >
                 Sign in here
               </Link>
@@ -108,19 +107,19 @@ const Register = () => {
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white/80 backdrop-blur-xl py-8 px-4 shadow-2xl rounded-2xl border border-white/20 sm:px-10">
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl py-8 px-4 shadow-2xl rounded-2xl border border-white/40 dark:border-gray-700 sm:px-10 transition-colors">
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label
                   htmlFor="name"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
+                  className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
                 >
                   Full name
                 </label>
                 <div className="relative rounded-xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <FiUser
-                      className="h-5 w-5 text-gray-400"
+                      className="h-5 w-5 text-gray-400 dark:text-gray-500"
                       aria-hidden="true"
                     />
                   </div>
@@ -132,7 +131,7 @@ const Register = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-4 sm:text-sm border-gray-200 rounded-xl h-12 border text-gray-900 bg-white/50 backdrop-blur-sm transition-all duration-200 hover:bg-white focus:bg-white"
+                    className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-4 sm:text-sm border-gray-200 dark:border-gray-600 rounded-xl h-12 border text-gray-900 dark:text-white bg-white/70 dark:bg-gray-700/60 backdrop-blur-sm transition-all duration-200 hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
                     placeholder="John Doe"
                   />
                 </div>
@@ -141,14 +140,14 @@ const Register = () => {
               <div>
                 <label
                   htmlFor="role"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
+                  className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
                 >
                   Account Type
                 </label>
                 <div className="relative rounded-xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <FiBriefcase
-                      className="h-5 w-5 text-gray-400"
+                      className="h-5 w-5 text-gray-400 dark:text-gray-500"
                       aria-hidden="true"
                     />
                   </div>
@@ -157,11 +156,11 @@ const Register = () => {
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
-                    className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-4 sm:text-sm border-gray-200 rounded-xl h-12 border text-gray-900 bg-white/50 backdrop-blur-sm transition-all duration-200 hover:bg-white focus:bg-white appearance-none cursor-pointer"
+                    className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-4 sm:text-sm border-gray-200 dark:border-gray-600 rounded-xl h-12 border text-gray-900 dark:text-white bg-white/70 dark:bg-gray-700/60 backdrop-blur-sm transition-all duration-200 hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 appearance-none cursor-pointer"
                   >
-                    <option value="jobseeker">Job Seeker</option>
-                    <option value="employer">Employer</option>
-                    <option value="admin">Admin</option>
+                    <option value="jobseeker" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Job Seeker</option>
+                    <option value="employer" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Employer</option>
+                    <option value="admin" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Admin</option>
                   </select>
                 </div>
               </div>
@@ -169,14 +168,14 @@ const Register = () => {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
+                  className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
                 >
                   Email address
                 </label>
                 <div className="relative rounded-xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <FiMail
-                      className="h-5 w-5 text-gray-400"
+                      className="h-5 w-5 text-gray-400 dark:text-gray-500"
                       aria-hidden="true"
                     />
                   </div>
@@ -188,7 +187,7 @@ const Register = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-4 sm:text-sm border-gray-200 rounded-xl h-12 border text-gray-900 bg-white/50 backdrop-blur-sm transition-all duration-200 hover:bg-white focus:bg-white"
+                    className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-4 sm:text-sm border-gray-200 dark:border-gray-600 rounded-xl h-12 border text-gray-900 dark:text-white bg-white/70 dark:bg-gray-700/60 backdrop-blur-sm transition-all duration-200 hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
                     placeholder="you@example.com"
                   />
                 </div>
@@ -197,14 +196,14 @@ const Register = () => {
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
+                  className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
                 >
                   Password
                 </label>
                 <div className="relative rounded-xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <FiLock
-                      className="h-5 w-5 text-gray-400"
+                      className="h-5 w-5 text-gray-400 dark:text-gray-500"
                       aria-hidden="true"
                     />
                   </div>
@@ -216,18 +215,19 @@ const Register = () => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-12 sm:text-sm border-gray-200 rounded-xl h-12 border text-gray-900 bg-white/50 backdrop-blur-sm transition-all duration-200 hover:bg-white focus:bg-white"
+                    className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-12 sm:text-sm border-gray-200 dark:border-gray-600 rounded-xl h-12 border text-gray-900 dark:text-white bg-white/70 dark:bg-gray-700/60 backdrop-blur-sm transition-all duration-200 hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? (
-                      <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      <FiEyeOff className="h-5 w-5" />
                     ) : (
-                      <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      <FiEye className="h-5 w-5" />
                     )}
                   </button>
                 </div>
@@ -236,14 +236,14 @@ const Register = () => {
               <div>
                 <label
                   htmlFor="confirmPassword"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
+                  className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
                 >
                   Confirm password
                 </label>
                 <div className="relative rounded-xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <FiLock
-                      className="h-5 w-5 text-gray-400"
+                      className="h-5 w-5 text-gray-400 dark:text-gray-500"
                       aria-hidden="true"
                     />
                   </div>
@@ -255,18 +255,19 @@ const Register = () => {
                     required
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-12 sm:text-sm border-gray-200 rounded-xl h-12 border text-gray-900 bg-white/50 backdrop-blur-sm transition-all duration-200 hover:bg-white focus:bg-white"
+                    className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-12 sm:text-sm border-gray-200 dark:border-gray-600 rounded-xl h-12 border text-gray-900 dark:text-white bg-white/70 dark:bg-gray-700/60 backdrop-blur-sm transition-all duration-200 hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    aria-label={showConfirmPassword ? "Hide password confirmation" : "Show password confirmation"}
                   >
                     {showConfirmPassword ? (
-                      <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      <FiEyeOff className="h-5 w-5" />
                     ) : (
-                      <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      <FiEye className="h-5 w-5" />
                     )}
                   </button>
                 </div>
@@ -276,7 +277,7 @@ const Register = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105 ${
+                  className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-[1.02] cursor-pointer ${
                     isSubmitting ? "opacity-70 cursor-not-allowed" : ""
                   }`}
                 >
@@ -318,10 +319,10 @@ const Register = () => {
           <div className="mt-8">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+                <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white/80 backdrop-blur-sm text-gray-500">
+                <span className="px-4 bg-transparent text-gray-500 dark:text-gray-400 font-medium">
                   Or continue with
                 </span>
               </div>
@@ -331,7 +332,7 @@ const Register = () => {
               <div>
                 <a
                   href="#"
-                  className="w-full inline-flex justify-center py-3 px-4 border border-gray-200 rounded-xl shadow-sm bg-white/50 backdrop-blur-sm text-sm font-medium text-gray-600 hover:bg-white transition-all duration-200 hover:shadow-md"
+                  className="w-full inline-flex justify-center py-3 px-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs bg-white/70 dark:bg-gray-800/80 backdrop-blur-sm text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 hover:shadow-md"
                 >
                   <span className="sr-only">Sign up with Google</span>
                   <svg
@@ -348,7 +349,7 @@ const Register = () => {
               <div>
                 <a
                   href="#"
-                  className="w-full inline-flex justify-center py-3 px-4 border border-gray-200 rounded-xl shadow-sm bg-white/50 backdrop-blur-sm text-sm font-medium text-gray-600 hover:bg-white transition-all duration-200 hover:shadow-md"
+                  className="w-full inline-flex justify-center py-3 px-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs bg-white/70 dark:bg-gray-800/80 backdrop-blur-sm text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 hover:shadow-md"
                 >
                   <span className="sr-only">Sign up with GitHub</span>
                   <svg

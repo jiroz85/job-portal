@@ -31,6 +31,7 @@ import RecommendedJobCard from "../components/dashboard/RecommendedJobCard";
 import ResumeManager from "../components/dashboard/ResumeManager";
 import ProfileIntegrityCard from "../components/dashboard/ProfileIntegrityCard";
 import JobSeekerSidebar from "../components/dashboard/JobSeekerSidebar";
+import ThemeToggle from "../components/common/ThemeToggle";
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
@@ -526,6 +527,10 @@ const UserDashboard = () => {
                 Welcome back, {user?.name || "Job Seeker"}
               </p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <ThemeToggle size="sm" />
           </div>
         </header>
 

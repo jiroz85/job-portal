@@ -9,6 +9,7 @@ import {
 } from "react-icons/fa";
 import useAuth from "../../hooks/useAuth";
 import NotificationDropdown from "../Notifications/NotificationDropdown";
+import ThemeToggle from "../common/ThemeToggle";
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -221,10 +222,12 @@ const Navbar = () => {
                 </Link>
               </div>
             )}
+            <ThemeToggle className="ml-2" />
           </div>
 
           {/* Mobile menu toggle button */}
           <div className="flex items-center md:hidden space-x-2">
+            <ThemeToggle size="sm" />
             {isAuthenticated && <NotificationDropdown />}
             <button
               type="button"
@@ -337,6 +340,11 @@ const Navbar = () => {
                 </Link>
               </div>
             )}
+
+            <div className="pt-3 mt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between px-3 py-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Appearance</span>
+              <ThemeToggle showLabel={true} size="sm" />
+            </div>
           </div>
         )}
       </div>

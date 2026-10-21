@@ -9,6 +9,7 @@ import {
   FiActivity,
 } from "react-icons/fi";
 import notificationService from "../../services/notificationService";
+import ThemeToggle from "../common/ThemeToggle";
 
 const AdminHeader = ({ toggleSidebar }) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -106,6 +107,7 @@ const AdminHeader = ({ toggleSidebar }) => {
         </div>
 
         <div className="flex items-center space-x-3 sm:space-x-4">
+          <ThemeToggle size="sm" />
           <div className="relative" ref={notificationRef}>
             <button
               type="button"

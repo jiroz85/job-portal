@@ -7,6 +7,7 @@ import { ApplicationProvider } from "./context/ApplicationContext";
 import { UserProvider } from "./context/UserContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { SavedJobsProvider } from "./context/SavedJobsContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminRoute from "./components/auth/AdminRoute";
 import EmployerRoute from "./components/auth/EmployerRoute";
@@ -52,6 +53,7 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <UserProvider>
@@ -165,6 +167,7 @@ function App() {
         </AuthProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </Router>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
