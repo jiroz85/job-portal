@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./context/AuthContext";
+import useAuth from "./hooks/useAuth";
 import { JobProvider } from "./context/JobContext";
 import { ApplicationProvider } from "./context/ApplicationContext";
 import { UserProvider } from "./context/UserContext";
@@ -83,6 +84,18 @@ const queryClient = new QueryClient({
   },
 });
 
+// When logged in, users stay focused within their dashboard.
+// The only way to exit back to the public web is by logging out.
+const AuthenticatedHomeRedirect = () => {
+  const { isAuthenticated, user } = useAuth();
+  if (isAuthenticated) {
+    if (user?.role === "admin") return <Navigate to="/admin" replace />;
+    if (user?.role === "employer") return <Navigate to="/employer" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <HomePage />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -99,7 +112,7 @@ function App() {
                         <main className="flex-1">
                           <Suspense fallback={<PageLoadingFallback />}>
                             <Routes>
-                              <Route path="/" element={<HomePage />} />
+                              <Route path="/" element={<AuthenticatedHomeRedirect />} />
                               <Route
                                 path="/jobs"
                                 element={<Navigate to="/#browse-jobs" replace />}

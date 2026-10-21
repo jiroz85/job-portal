@@ -102,8 +102,8 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Brand Logo */}
           <Link
-            to="/"
-            onClick={handleHomeClick}
+            to={isAuthenticated ? getDashboardPath() : "/"}
+            onClick={isAuthenticated ? closeMenu : handleHomeClick}
             className="flex items-center space-x-2.5 group"
           >
             <img
@@ -123,8 +123,10 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1 lg:space-x-2">
-            <Link
-              to="/"
+            {!isAuthenticated && (
+              <>
+                <Link
+                  to="/"
               onClick={handleHomeClick}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive("/")
@@ -157,7 +159,9 @@ const Navbar = () => {
               }`}
             >
               Categories
-            </Link>
+                </Link>
+              </>
+            )}
 
             {isAuthenticated ? (
               <div className="flex items-center space-x-3 ml-2 pl-3 border-l border-gray-200 dark:border-gray-700">
@@ -247,8 +251,10 @@ const Navbar = () => {
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
-            <Link
-              to="/"
+            {!isAuthenticated && (
+              <>
+                <Link
+                  to="/"
               onClick={handleHomeClick}
               className={`block px-3 py-2 rounded-lg text-base font-medium ${
                 isActive("/")
@@ -281,7 +287,9 @@ const Navbar = () => {
               }`}
             >
               Categories
-            </Link>
+                </Link>
+              </>
+            )}
 
             {isAuthenticated ? (
               <div className="pt-2 border-t border-gray-100 dark:border-gray-800 space-y-2">

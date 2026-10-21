@@ -332,12 +332,26 @@ const JobDetailPage = () => {
             {error || "The position you are looking for may have expired or been removed."}
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              to="/#browse-jobs"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              <FaArrowLeft className="mr-2" /> Browse All Jobs
-            </Link>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (user?.role === "employer") navigate("/employer/jobs");
+                  else if (user?.role === "admin") navigate("/admin/jobs");
+                  else navigate("/dashboard");
+                }}
+                className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
+              >
+                <FaArrowLeft className="mr-2" /> Back to Dashboard
+              </button>
+            ) : (
+              <Link
+                to="/#browse-jobs"
+                className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
+              >
+                <FaArrowLeft className="mr-2" /> Browse All Jobs
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -357,12 +371,26 @@ const JobDetailPage = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Navigation Breadcrumb / Back button */}
         <div className="flex items-center justify-between mb-6">
-          <Link
-            to="/#browse-jobs"
-            className="inline-flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            <FaArrowLeft className="mr-2" /> Back to Jobs
-          </Link>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (user?.role === "employer") navigate("/employer/jobs");
+                else if (user?.role === "admin") navigate("/admin/jobs");
+                else navigate("/dashboard");
+              }}
+              className="inline-flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              <FaArrowLeft className="mr-2" /> Back to Dashboard
+            </button>
+          ) : (
+            <Link
+              to="/#browse-jobs"
+              className="inline-flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              <FaArrowLeft className="mr-2" /> Back to Jobs
+            </Link>
+          )}
           <button
             onClick={handleShareClick}
             type="button"
