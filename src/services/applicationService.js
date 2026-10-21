@@ -149,7 +149,10 @@ export const applicationService = {
   getApplicationsByEmail: async (email) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/applications/email/${email}`
+        `${API_BASE_URL}/applications/email/${email}`,
+        {
+          headers: getAuthHeaders(),
+        }
       );
       return response.data;
     } catch (error) {
@@ -171,6 +174,25 @@ export const applicationService = {
     } catch (error) {
       console.error("Error fetching applications by job ID:", error);
       throw error;
+    }
+  },
+
+  // Withdraw application (Candidate action)
+  withdrawApplication: async (id) => {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/applications/${id}/withdraw`,
+        {},
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error withdrawing application:", error);
+      const errMsg =
+        error.response?.data?.error || error.message || "Failed to withdraw application";
+      throw new Error(errMsg);
     }
   },
 

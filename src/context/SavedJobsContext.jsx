@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import useAuth from "../hooks/useAuth";
 
 const SavedJobsContext = createContext();
 
@@ -11,29 +12,85 @@ export const useSavedJobs = () => {
 };
 
 export const SavedJobsProvider = ({ children }) => {
-  const [savedJobs, setSavedJobs] = useState(() => {
-    const savedJobsFromStorage = localStorage.getItem("savedJobs");
-    return savedJobsFromStorage ? JSON.parse(savedJobsFromStorage) : [];
-  });
+  const { user } = useAuth();
+  const jobsStorageKey = user?.id ? `savedJobs_user_${user.id}` : "savedJobs_guest";
+  const companiesStorageKey = user?.id ? `savedCompanies_user_${user.id}` : "savedCompanies_guest";
 
-  const [savedCompanies, setSavedCompanies] = useState(() => {
-    const savedCompaniesFromStorage = localStorage.getItem("savedCompanies");
-    return savedCompaniesFromStorage
-      ? JSON.parse(savedCompaniesFromStorage)
-      : [];
-  });
+  const [savedJobs, setSavedJobs] = useState([]);
+  const [savedCompanies, setSavedCompanies] = useState([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Save to localStorage whenever data changes
+  // Load user-scoped saved jobs and companies whenever authenticated user changes
   useEffect(() => {
-    localStorage.setItem("savedJobs", JSON.stringify(savedJobs));
-  }, [savedJobs]);
+    try {
+      const storedJobs = localStorage.getItem(jobsStorageKey);
+      if (storedJobs) {
+        setSavedJobs(JSON.parse(storedJobs));
+      } else {
+        // Fallback migration for existing data
+        const legacyJobs = localStorage.getItem("savedJobs");
+        if (legacyJobs && user?.id) {
+          try {
+            const parsed = JSON.parse(legacyJobs);
+            setSavedJobs(parsed);
+            localStorage.setItem(jobsStorageKey, legacyJobs);
+          } catch {
+            setSavedJobs([]);
+          }
+        } else {
+          setSavedJobs([]);
+        }
+      }
 
+      const storedCompanies = localStorage.getItem(companiesStorageKey);
+      if (storedCompanies) {
+        setSavedCompanies(JSON.parse(storedCompanies));
+      } else {
+        const legacyCompanies = localStorage.getItem("savedCompanies");
+        if (legacyCompanies && user?.id) {
+          try {
+            const parsed = JSON.parse(legacyCompanies);
+            setSavedCompanies(parsed);
+            localStorage.setItem(companiesStorageKey, legacyCompanies);
+          } catch {
+            setSavedCompanies([]);
+          }
+        } else {
+          setSavedCompanies([]);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load saved items from localStorage:", e);
+      setSavedJobs([]);
+      setSavedCompanies([]);
+    } finally {
+      setIsInitialized(true);
+    }
+  }, [jobsStorageKey, companiesStorageKey, user?.id]);
+
+  // Persist saved jobs when state changes (after initialization)
   useEffect(() => {
-    localStorage.setItem("savedCompanies", JSON.stringify(savedCompanies));
-  }, [savedCompanies]);
+    if (!isInitialized) return;
+    try {
+      localStorage.setItem(jobsStorageKey, JSON.stringify(savedJobs));
+    } catch (e) {
+      console.error("Failed to persist saved jobs:", e);
+    }
+  }, [savedJobs, jobsStorageKey, isInitialized]);
+
+  // Persist saved companies when state changes (after initialization)
+  useEffect(() => {
+    if (!isInitialized) return;
+    try {
+      localStorage.setItem(companiesStorageKey, JSON.stringify(savedCompanies));
+    } catch (e) {
+      console.error("Failed to persist saved companies:", e);
+    }
+  }, [savedCompanies, companiesStorageKey, isInitialized]);
 
   // Save a job
   const saveJob = (job) => {
+    if (!job || !job.id) return false;
     const isAlreadySaved = savedJobs.some((savedJob) => savedJob.id === job.id);
     if (!isAlreadySaved) {
       setSavedJobs((prev) => [
@@ -47,16 +104,19 @@ export const SavedJobsProvider = ({ children }) => {
 
   // Unsave a job
   const unsaveJob = (jobId) => {
+    if (!jobId) return;
     setSavedJobs((prev) => prev.filter((job) => job.id !== jobId));
   };
 
   // Check if job is saved
   const isJobSaved = (jobId) => {
+    if (!jobId) return false;
     return savedJobs.some((job) => job.id === jobId);
   };
 
   // Save a company
   const saveCompany = (company) => {
+    if (!company || !company.name) return false;
     const isAlreadySaved = savedCompanies.some(
       (savedCompany) => savedCompany.name === company.name
     );
@@ -72,6 +132,7 @@ export const SavedJobsProvider = ({ children }) => {
 
   // Unsave a company
   const unsaveCompany = (companyName) => {
+    if (!companyName) return;
     setSavedCompanies((prev) =>
       prev.filter((company) => company.name !== companyName)
     );
@@ -79,6 +140,7 @@ export const SavedJobsProvider = ({ children }) => {
 
   // Check if company is saved
   const isCompanySaved = (companyName) => {
+    if (!companyName) return false;
     return savedCompanies.some((company) => company.name === companyName);
   };
 

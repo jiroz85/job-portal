@@ -17,6 +17,7 @@ const STATUS_FILTERS = [
   { id: "interview", label: "Interviews" },
   { id: "offered", label: "Offered" },
   { id: "rejected", label: "Not Selected" },
+  { id: "withdrawn", label: "Withdrawn" },
 ];
 
 const ApplicationSkeleton = () => (
@@ -42,6 +43,9 @@ const ApplicationList = ({
   error = null,
   onRetry,
   onExplore,
+  onWithdraw,
+  onFeedback,
+  actionLoadingId = null,
 }) => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -104,6 +108,7 @@ const ApplicationList = ({
                 type="button"
                 onClick={() => setSearch("")}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                aria-label="Clear search"
               >
                 <FiX className="text-sm" />
               </button>
@@ -197,7 +202,13 @@ const ApplicationList = ({
           </div>
 
           {filteredApplications.map((app) => (
-            <ApplicationCard key={app.id} application={app} />
+            <ApplicationCard
+              key={app.id}
+              application={app}
+              onWithdraw={onWithdraw}
+              onFeedback={onFeedback}
+              actionLoadingId={actionLoadingId}
+            />
           ))}
         </div>
       ) : applications.length === 0 ? (

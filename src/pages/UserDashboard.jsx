@@ -12,8 +12,11 @@ import {
   FiBookmark,
   FiEye,
   FiStar,
-  FiFileText,
   FiMenu,
+  FiAlertCircle,
+  FiTrash2,
+  FiX,
+  FiInfo,
 } from "react-icons/fi";
 import useAuth from "../hooks/useAuth";
 import { useJobs } from "../context/JobContext";
@@ -36,7 +39,6 @@ const UserDashboard = () => {
   const { getPublishedJobs, loading: jobsLoading } = useJobs();
   const { savedJobs, saveJob, unsaveJob, isJobSaved, getSavedJobsCount } = useSavedJobs();
 
-
   const publishedJobs = getPublishedJobs();
   const [activeTab, setActiveTab] = useState("overview");
   const [realApplications, setRealApplications] = useState([]);
@@ -47,6 +49,18 @@ const UserDashboard = () => {
   const [resumesError, setResumesError] = useState(null);
   const [resumeUploading, setResumeUploading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  // In-app feedback and modal state (replacing native alert() and confirm())
+  const [feedback, setFeedback] = useState(null);
+  const [resumeToDelete, setResumeToDelete] = useState(null);
+  const [applicationToWithdraw, setApplicationToWithdraw] = useState(null);
+
+  const showFeedback = useCallback((type, message, duration = 4500) => {
+    setFeedback({ type, message });
+    setTimeout(() => {
+      setFeedback((prev) => (prev?.message === message ? null : prev));
+    }, duration);
+  }, []);
 
   const fetchResumes = useCallback(async () => {
     try {
@@ -97,15 +111,9 @@ const UserDashboard = () => {
     fetchUserApplications();
   }, [fetchUserApplications]);
 
-
   // Listen for real-time status updates
   useEffect(() => {
     const handleStatusUpdate = (event) => {
-      console.log(
-        "🔄 UserDashboard: Received status update event",
-        event.detail
-      );
-
       // Update the specific application in real-time
       if (event.detail && event.detail.applicantEmail === user?.email) {
         setRealApplications((prevApplications) =>
@@ -116,15 +124,16 @@ const UserDashboard = () => {
           )
         );
 
-        // Show notification to user
+        // Map status to user-friendly candidate message
         const statusMessages = {
-          under_review: "Your application is being reviewed!",
-          shortlisted: "Congratulations! You have been shortlisted!",
-          interview_scheduled: "Interview has been scheduled!",
-          interviewed: "Interview completed - awaiting decision",
-          offered: "Congratulations! You have received a job offer!",
-          accepted: "Welcome aboard! Your application has been accepted.",
+          under_review: "Your application is being reviewed by the hiring team.",
+          shortlisted: "Congratulations! You have been shortlisted for the position.",
+          interview_scheduled: "An interview has been scheduled for your application.",
+          interviewed: "Interview completed - awaiting decision from employer.",
+          offered: "Congratulations! You have received a job offer.",
+          accepted: "Welcome aboard! Your application was accepted.",
           rejected: "Your application was not selected for this position.",
+          withdrawn: "Your application has been marked as withdrawn.",
         };
 
         const message =
@@ -132,30 +141,34 @@ const UserDashboard = () => {
           `Application status updated to: ${event.detail.newStatus}`;
 
         // Show browser notification if permitted
-        if (Notification.permission === "granted") {
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
           new Notification("Application Status Update", {
             body: message,
             icon: "/favicon.ico",
           });
         }
 
-        // Show in-app notification
-        alert(`📬 ${message}`);
+        // Show in-app accessible notification
+        showFeedback("info", `Application update: ${message}`, 6000);
       }
     };
 
     const handleStorageChange = (event) => {
       if (event.key === "applicationStatusUpdate") {
-        const statusUpdate = JSON.parse(event.newValue);
-        if (statusUpdate.applicantEmail === user?.email) {
-          handleStatusUpdate({ detail: statusUpdate });
+        try {
+          const statusUpdate = JSON.parse(event.newValue);
+          if (statusUpdate && statusUpdate.applicantEmail === user?.email) {
+            handleStatusUpdate({ detail: statusUpdate });
+          }
+        } catch (e) {
+          console.error("Error parsing storage update:", e);
         }
       }
     };
 
-    // Request notification permission
-    if (Notification.permission === "default") {
-      Notification.requestPermission();
+    // Request notification permission if not yet decided
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
     }
 
     window.addEventListener("applicationStatusUpdated", handleStatusUpdate);
@@ -168,7 +181,7 @@ const UserDashboard = () => {
       );
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, [user?.email]);
+  }, [user?.email, showFeedback]);
 
   // Parse candidate profile skills if available
   const candidateSkills = useMemo(() => {
@@ -243,29 +256,28 @@ const UserDashboard = () => {
       });
   }, [publishedJobs, candidateSkills]);
 
-
   const getStatusColor = (status) => {
     switch (status) {
       case "pending":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600";
       case "under_review":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 border-blue-200 dark:border-blue-800";
       case "shortlisted":
-        return "bg-indigo-100 text-indigo-800";
+        return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800";
       case "interview_scheduled":
-        return "bg-purple-100 text-purple-800";
+        return "bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 border-amber-200 dark:border-amber-800";
       case "interviewed":
-        return "bg-orange-100 text-orange-800";
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900/60 dark:text-orange-200 border-orange-200 dark:border-orange-800";
       case "offered":
-        return "bg-green-100 text-green-800";
+        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800";
       case "accepted":
-        return "bg-emerald-100 text-emerald-800";
+        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800";
       case "rejected":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200 border-red-200 dark:border-red-800";
       case "withdrawn":
-        return "bg-gray-100 text-gray-600";
+        return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600";
     }
   };
 
@@ -288,7 +300,7 @@ const UserDashboard = () => {
       case "rejected":
         return <FiXCircle className="h-4 w-4" />;
       case "withdrawn":
-        return <FiClock className="h-4 w-4" />;
+        return <FiXCircle className="h-4 w-4" />;
       default:
         return <FiClock className="h-4 w-4" />;
     }
@@ -297,7 +309,7 @@ const UserDashboard = () => {
   const stats = realApplications.reduce(
     (acc, app) => {
       acc.total++;
-      acc.applied++; // Count all applications as "Applications"
+      acc.applied++;
       if (app.status === "under_review" || app.status === "viewed")
         acc.viewed++;
       else if (app.status === "shortlisted") acc.shortlisted++;
@@ -330,8 +342,10 @@ const UserDashboard = () => {
 
     if (isJobSaved(jobId)) {
       unsaveJob(jobId);
+      showFeedback("info", "Removed from saved jobs.");
     } else if (job) {
       saveJob(job);
+      showFeedback("success", `"${job.title}" saved to bookmarks.`);
     }
   };
 
@@ -341,7 +355,7 @@ const UserDashboard = () => {
     // Validate file size (5 MB limit)
     const MAX_SIZE_BYTES = 5 * 1024 * 1024;
     if (file.size > MAX_SIZE_BYTES) {
-      alert("File size exceeds 5 MB limit. Please select a smaller PDF or DOCX file.");
+      showFeedback("error", "File size exceeds 5 MB limit. Please select a smaller PDF or DOCX file.");
       return;
     }
 
@@ -349,7 +363,7 @@ const UserDashboard = () => {
     const extension = file.name.split(".").pop()?.toLowerCase();
     const validExtensions = ["pdf", "doc", "docx"];
     if (!extension || !validExtensions.includes(extension)) {
-      alert("Invalid file format. Please upload a PDF, DOC, or DOCX document.");
+      showFeedback("error", "Invalid file format. Please upload a PDF, DOC, or DOCX document.");
       return;
     }
 
@@ -357,13 +371,13 @@ const UserDashboard = () => {
       setResumeUploading(true);
       const response = await resumeService.uploadResume(file);
       if (response.success) {
-        // Refresh resumes without page reload
         await fetchResumes();
+        showFeedback("success", `"${file.name}" uploaded successfully.`);
       } else {
-        alert(response.error || "Failed to upload resume.");
+        showFeedback("error", response.error || "Failed to upload resume.");
       }
     } catch (err) {
-      alert(`Error uploading resume: ${err.message}`);
+      showFeedback("error", `Error uploading resume: ${err.message}`);
     } finally {
       setResumeUploading(false);
     }
@@ -375,11 +389,12 @@ const UserDashboard = () => {
       const response = await resumeService.setDefaultResume(id);
       if (response.success) {
         await fetchResumes();
+        showFeedback("success", "Default resume updated successfully.");
       } else {
-        alert(response.error || "Failed to set default resume.");
+        showFeedback("error", response.error || "Failed to set default resume.");
       }
     } catch (err) {
-      alert(`Error setting default resume: ${err.message}`);
+      showFeedback("error", `Error setting default resume: ${err.message}`);
     } finally {
       setActionLoadingId(null);
     }
@@ -388,29 +403,57 @@ const UserDashboard = () => {
   const handleDownloadResume = async (id, name) => {
     try {
       await resumeService.downloadResume(id, name);
+      showFeedback("success", `"${name}" downloaded successfully.`);
     } catch (err) {
-      alert(`Error downloading resume: ${err.message}`);
+      showFeedback("error", `Error downloading resume: ${err.message}`);
     }
   };
 
-  const handleDeleteResume = async (id, name = "this resume") => {
-    if (window.confirm(`Are you sure you want to permanently delete "${name}"?`)) {
-      try {
-        setActionLoadingId(id);
-        const response = await resumeService.deleteResume(id);
-        if (response.success) {
-          await fetchResumes();
-        } else {
-          alert(response.error || "Failed to delete resume.");
-        }
-      } catch (err) {
-        alert(`Error deleting resume: ${err.message}`);
-      } finally {
-        setActionLoadingId(null);
+  const handleDeleteResume = (id, name = "this resume") => {
+    setResumeToDelete({ id, name });
+  };
+
+  const confirmDeleteResume = async () => {
+    if (!resumeToDelete) return;
+    try {
+      setActionLoadingId(resumeToDelete.id);
+      const response = await resumeService.deleteResume(resumeToDelete.id);
+      if (response.success) {
+        await fetchResumes();
+        showFeedback("success", `"${resumeToDelete.name}" deleted successfully.`);
+      } else {
+        showFeedback("error", response.error || "Failed to delete resume.");
       }
+    } catch (err) {
+      showFeedback("error", `Error deleting resume: ${err.message}`);
+    } finally {
+      setActionLoadingId(null);
+      setResumeToDelete(null);
     }
   };
 
+  const handleWithdrawApplication = (application) => {
+    setApplicationToWithdraw(application);
+  };
+
+  const confirmWithdrawApplication = async () => {
+    if (!applicationToWithdraw) return;
+    try {
+      setActionLoadingId(applicationToWithdraw.id);
+      const response = await applicationService.withdrawApplication(applicationToWithdraw.id);
+      if (response.success) {
+        await fetchUserApplications();
+        showFeedback("success", "Application successfully withdrawn.");
+      } else {
+        showFeedback("error", response.error || "Failed to withdraw application.");
+      }
+    } catch (err) {
+      showFeedback("error", err.message || "Failed to withdraw application.");
+    } finally {
+      setActionLoadingId(null);
+      setApplicationToWithdraw(null);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -489,6 +532,39 @@ const UserDashboard = () => {
         {/* Dashboard Main Content */}
         <main className="p-4 sm:p-6 lg:p-8 flex-1">
           <div className="max-w-7xl mx-auto">
+            {/* Non-blocking feedback notification banner */}
+            {feedback && (
+              <div
+                role="alert"
+                className={`mb-6 flex items-center justify-between p-4 rounded-xl border shadow-sm transition-all duration-200 text-xs sm:text-sm font-medium ${
+                  feedback.type === "success"
+                    ? "bg-green-50 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800"
+                    : feedback.type === "info"
+                    ? "bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                    : "bg-red-50 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  {feedback.type === "success" ? (
+                    <FiCheckCircle className="text-base text-green-600 dark:text-green-400 flex-shrink-0" />
+                  ) : feedback.type === "info" ? (
+                    <FiInfo className="text-base text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  ) : (
+                    <FiAlertCircle className="text-base text-red-600 dark:text-red-400 flex-shrink-0" />
+                  )}
+                  <span>{feedback.message}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFeedback(null)}
+                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-black/5 transition-colors"
+                  aria-label="Dismiss notification"
+                >
+                  <FiX className="text-sm" />
+                </button>
+              </div>
+            )}
+
             {/* Dashboard Header with KPI summary cards */}
             <DashboardHeader
               user={user}
@@ -508,489 +584,580 @@ const UserDashboard = () => {
               }}
             />
 
-        {/* Overview Tab */}
-        {activeTab === "overview" && (
-          <div>
-
-            {/* Recent Applications */}
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 mb-8 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                    Recent Applications
-                  </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    Your latest submissions and active progress
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("applications")}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  View All ({realApplications.length})
-                </button>
-              </div>
-
-              {applicationsLoading ? (
-                <div className="p-6 space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="animate-pulse flex items-center justify-between py-3"
-                    >
-                      <div className="space-y-2 flex-1">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                      </div>
-                      <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-24"></div>
+            {/* Overview Tab */}
+            {activeTab === "overview" && (
+              <div>
+                {/* Recent Applications */}
+                <div className="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 mb-8 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                        Recent Applications
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Your latest submissions and active progress
+                      </p>
                     </div>
-                  ))}
-                </div>
-              ) : realApplications.length > 0 ? (
-                <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                  {realApplications.slice(0, 3).map((application) => {
-                    const title = application.job?.title || "Position Applied";
-                    const company = application.job?.company || "Company";
-                    const location = application.job?.location;
-                    const date = application.applicationDate
-                      ? new Date(application.applicationDate).toLocaleDateString(
-                          undefined,
-                          { month: "short", day: "numeric", year: "numeric" }
-                        )
-                      : "Recently";
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("applications")}
+                      className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      View All ({realApplications.length})
+                    </button>
+                  </div>
 
-                    return (
-                      <div
-                        key={application.id || application._id}
-                        className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                {title}
-                              </h3>
-                              <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                • {company}
-                              </span>
-                            </div>
-                            <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                              {location && <span>{location}</span>}
-                              {location && <span>•</span>}
-                              <span>Applied {date}</span>
-                            </div>
+                  {applicationsLoading ? (
+                    <div className="p-6 space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="animate-pulse flex items-center justify-between py-3"
+                        >
+                          <div className="space-y-2 flex-1">
+                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                                application.status
-                              )}`}
-                            >
-                              {getStatusIcon(application.status)}
-                              <span className="capitalize">
-                                {application.status?.replace("_", " ") || "Pending"}
-                              </span>
-                            </span>
-                            {application.jobId && (
-                              <Link
-                                to={`/jobs/${application.jobId}`}
-                                className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                              >
-                                View Job
-                              </Link>
-                            )}
-                          </div>
+                          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-24"></div>
                         </div>
+                      ))}
+                    </div>
+                  ) : realApplications.length > 0 ? (
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                      {realApplications.slice(0, 3).map((application) => {
+                        const title = application.job?.title || "Position Applied";
+                        const company = application.job?.company || "Company";
+                        const location = application.job?.location;
+                        const date = application.applicationDate
+                          ? new Date(application.applicationDate).toLocaleDateString(
+                              undefined,
+                              { month: "short", day: "numeric", year: "numeric" }
+                            )
+                          : "Recently";
+
+                        return (
+                          <div
+                            key={application.id || application._id}
+                            className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                    {title}
+                                  </h3>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    • {company}
+                                  </span>
+                                </div>
+                                <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                  {location && <span>{location}</span>}
+                                  {location && <span>•</span>}
+                                  <span>Applied {date}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                                    application.status
+                                  )}`}
+                                >
+                                  {getStatusIcon(application.status)}
+                                  <span className="capitalize">
+                                    {application.status?.replace("_", " ") || "Pending"}
+                                  </span>
+                                </span>
+                                {application.jobId && (
+                                  <Link
+                                    to={`/jobs/${application.jobId}`}
+                                    className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                                  >
+                                    View Job
+                                  </Link>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="px-6 py-8 text-center">
+                      <FiBriefcase className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
+                      <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                        No applications submitted yet
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Explore available listings and apply directly.
+                      </p>
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("recommended")}
+                          className="inline-flex items-center px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
+                        >
+                          Explore Recommended Jobs
+                        </button>
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="px-6 py-8 text-center">
-                  <FiBriefcase className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
-                  <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                    No applications submitted yet
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Explore available listings and apply directly.
-                  </p>
-                  <div className="mt-4">
+
+                {/* Explore Opportunities */}
+                <div className="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 mb-8 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                        Explore Opportunities
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Newly listed vacancies open for applications
+                      </p>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setActiveTab("recommended")}
-                      className="inline-flex items-center px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
+                      className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      View All ({publishedJobs.length})
+                    </button>
+                  </div>
+
+                  {jobsLoading ? (
+                    <div className="p-6 space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="animate-pulse flex items-center justify-between py-3"
+                        >
+                          <div className="space-y-2 flex-1">
+                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                          </div>
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : publishedJobs.length > 0 ? (
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                      {publishedJobs.slice(0, 3).map((job) => (
+                        <Link
+                          key={job.id}
+                          to={`/jobs/${job.id}`}
+                          className="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                  {job.title}
+                                </h3>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                  • {job.company}
+                                </span>
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                                {job.location && (
+                                  <span className="flex items-center gap-1">
+                                    <FiMapPin className="text-[11px]" />
+                                    {job.location}
+                                  </span>
+                                )}
+                                {job.type && (
+                                  <span className="flex items-center gap-1">
+                                    <FiBriefcase className="text-[11px]" />
+                                    {job.type}
+                                  </span>
+                                )}
+                                {job.salary && (
+                                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                                    <FiDollarSign className="text-[11px]" />
+                                    {job.salary}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                              View details &rarr;
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-6 py-8 text-center">
+                      <FiBriefcase className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
+                      <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                        No active listings available
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recommended Jobs */}
+                <div className="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                        Recommended For You
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {candidateSkills.length > 0
+                          ? "Ranked according to your profile skills"
+                          : "Fresh active positions on the platform"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("recommended")}
+                      className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      View All ({recommendedJobs.length})
+                    </button>
+                  </div>
+
+                  {jobsLoading ? (
+                    <div className="p-6 space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="animate-pulse flex items-center justify-between py-3"
+                        >
+                          <div className="space-y-2 flex-1">
+                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                          </div>
+                          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg w-20"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : recommendedJobs.length > 0 ? (
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                      {recommendedJobs.slice(0, 3).map((job) => {
+                        const isSaved = isJobSaved(job.id);
+                        return (
+                          <div
+                            key={job.id}
+                            className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                    {job.title}
+                                  </h3>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    • {job.company}
+                                  </span>
+                                </div>
+                                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                                  {job.location && (
+                                    <span className="flex items-center gap-1">
+                                      <FiMapPin className="text-[11px]" />
+                                      {job.location}
+                                    </span>
+                                  )}
+                                  {job.salary && (
+                                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                                      <FiDollarSign className="text-[11px]" />
+                                      {job.salary}
+                                    </span>
+                                  )}
+                                  {job.matchedSkills && job.matchedSkills.length > 0 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                      {job.matchedSkills.length} skill match
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveJob(job)}
+                                  title={isSaved ? "Saved" : "Save job"}
+                                  className={`p-2 rounded-lg border text-xs transition-colors ${
+                                    isSaved
+                                      ? "bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-950/50 dark:border-blue-800 dark:text-blue-400"
+                                      : "border-gray-200 dark:border-gray-700 text-gray-400 hover:text-blue-600 hover:border-blue-300 dark:hover:text-blue-400"
+                                  }`}
+                                >
+                                  <FiBookmark className={isSaved ? "fill-current" : ""} />
+                                </button>
+
+                                <Link
+                                  to={`/jobs/${job.id}`}
+                                  className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
+                                >
+                                  View Job
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="px-6 py-8 text-center">
+                      <FiBriefcase className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
+                      <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                        No open positions available
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Check back soon for newly published roles.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Applications Tab */}
+            {activeTab === "applications" && (
+              <ApplicationList
+                applications={realApplications}
+                loading={applicationsLoading}
+                error={applicationsError}
+                onRetry={fetchUserApplications}
+                onExplore={() => setActiveTab("recommended")}
+                onWithdraw={handleWithdrawApplication}
+                onFeedback={showFeedback}
+                actionLoadingId={actionLoadingId}
+              />
+            )}
+
+            {/* Saved Jobs Tab */}
+            {activeTab === "saved" && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 sm:p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                        Saved Positions ({resolvedSavedJobs.length})
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Bookmarked listings saved for application and follow-up
+                      </p>
+                    </div>
+                    {resolvedSavedJobs.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("recommended")}
+                        className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                      >
+                        Explore Recommended Jobs &rarr;
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {resolvedSavedJobs.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {resolvedSavedJobs.map((job) => (
+                      <SavedJobCard
+                        key={job.id}
+                        job={job}
+                        onRemove={handleSaveJob}
+                        isAvailable={job.isAvailable}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 shadow-sm max-w-lg mx-auto">
+                    <div className="w-14 h-14 bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <FiBookmark className="text-2xl" />
+                    </div>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1.5">
+                      No saved jobs yet
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+                      Bookmark interesting job postings while exploring to review or apply to them later.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("recommended")}
+                      className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
                     >
                       Explore Recommended Jobs
                     </button>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Browse Jobs */}
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 mb-8 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                    Explore Opportunities
-                  </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    Newly listed vacancies open for applications
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("recommended")}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  View All ({publishedJobs.length})
-                </button>
-              </div>
-
-              {jobsLoading ? (
-                <div className="p-6 space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="animate-pulse flex items-center justify-between py-3"
-                    >
-                      <div className="space-y-2 flex-1">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                      </div>
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : publishedJobs.length > 0 ? (
-                <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                  {publishedJobs.slice(0, 3).map((job) => (
-                    <Link
-                      key={job.id}
-                      to={`/jobs/${job.id}`}
-                      className="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                              {job.title}
-                            </h3>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                              • {job.company}
-                            </span>
-                          </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                            {job.location && (
-                              <span className="flex items-center gap-1">
-                                <FiMapPin className="text-[11px]" />
-                                {job.location}
-                              </span>
-                            )}
-                            {job.type && (
-                              <span className="flex items-center gap-1">
-                                <FiBriefcase className="text-[11px]" />
-                                {job.type}
-                              </span>
-                            )}
-                            {job.salary && (
-                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                                <FiDollarSign className="text-[11px]" />
-                                {job.salary}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                          View details &rarr;
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="px-6 py-8 text-center">
-                  <FiBriefcase className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
-                  <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                    No active listings available
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Recommended Jobs */}
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                    Recommended For You
-                  </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {candidateSkills.length > 0
-                      ? "Ranked according to your profile skills"
-                      : "Fresh active positions on the platform"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("recommended")}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  View All ({recommendedJobs.length})
-                </button>
-              </div>
-
-              {jobsLoading ? (
-                <div className="p-6 space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="animate-pulse flex items-center justify-between py-3"
-                    >
-                      <div className="space-y-2 flex-1">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                      </div>
-                      <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg w-20"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : recommendedJobs.length > 0 ? (
-                <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                  {recommendedJobs.slice(0, 3).map((job) => {
-                    const isSaved = isJobSaved(job.id);
-                    return (
-                      <div
-                        key={job.id}
-                        className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                {job.title}
-                              </h3>
-                              <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                • {job.company}
-                              </span>
-                            </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                              {job.location && (
-                                <span className="flex items-center gap-1">
-                                  <FiMapPin className="text-[11px]" />
-                                  {job.location}
-                                </span>
-                              )}
-                              {job.salary && (
-                                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                                  <FiDollarSign className="text-[11px]" />
-                                  {job.salary}
-                                </span>
-                              )}
-                              {job.matchedSkills && job.matchedSkills.length > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                                  {job.matchedSkills.length} skill match
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => handleSaveJob(job)}
-                              title={isSaved ? "Saved" : "Save job"}
-                              className={`p-2 rounded-lg border text-xs transition-colors ${
-                                isSaved
-                                  ? "bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-950/50 dark:border-blue-800 dark:text-blue-400"
-                                  : "border-gray-200 dark:border-gray-700 text-gray-400 hover:text-blue-600 hover:border-blue-300 dark:hover:text-blue-400"
-                              }`}
-                            >
-                              <FiBookmark className={isSaved ? "fill-current" : ""} />
-                            </button>
-
-                            <Link
-                              to={`/jobs/${job.id}`}
-                              className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
-                            >
-                              View Job
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="px-6 py-8 text-center">
-                  <FiBriefcase className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
-                  <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                    No open positions available
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Check back soon for newly published roles.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Applications Tab */}
-        {activeTab === "applications" && (
-          <ApplicationList
-            applications={realApplications}
-            loading={applicationsLoading}
-            error={applicationsError}
-            onRetry={fetchUserApplications}
-            onExplore={() => setActiveTab("recommended")}
-          />
-        )}
-
-
-        {/* Saved Jobs Tab */}
-        {activeTab === "saved" && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 sm:p-6 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                    Saved Positions ({resolvedSavedJobs.length})
-                  </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Bookmarked listings saved for application and follow-up
-                  </p>
-                </div>
-                {resolvedSavedJobs.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("recommended")}
-                    className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                  >
-                    Explore Recommended Jobs &rarr;
-                  </button>
                 )}
               </div>
-            </div>
-
-            {resolvedSavedJobs.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {resolvedSavedJobs.map((job) => (
-                  <SavedJobCard
-                    key={job.id}
-                    job={job}
-                    onRemove={unsaveJob}
-                    isAvailable={job.isAvailable}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 shadow-sm max-w-lg mx-auto">
-                <div className="w-14 h-14 bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <FiBookmark className="text-2xl" />
-                </div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1.5">
-                  No saved jobs yet
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
-                  Bookmark interesting job postings while exploring to review or apply to them later.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("recommended")}
-                  className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm"
-                >
-                  Explore Recommended Jobs
-                </button>
-              </div>
             )}
-          </div>
-        )}
 
-        {/* Recommended Jobs Tab */}
-        {activeTab === "recommended" && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 sm:p-6 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                    Recommended Opportunities ({recommendedJobs.length})
-                  </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {candidateSkills.length > 0
-                      ? `Relevance-ranked using your profile skills (${candidateSkills.slice(0, 4).join(", ")}${candidateSkills.length > 4 ? "..." : ""})`
-                      : "Latest published roles from verified organizations"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {jobsLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm animate-pulse space-y-4"
-                  >
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            {/* Recommended Jobs Tab */}
+            {activeTab === "recommended" && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 sm:p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                        Recommended Opportunities ({recommendedJobs.length})
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {candidateSkills.length > 0
+                          ? `Relevance-ranked using your profile skills (${candidateSkills.slice(0, 4).join(", ")}${candidateSkills.length > 4 ? "..." : ""})`
+                          : "Latest published roles from verified organizations"}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            ) : recommendedJobs.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recommendedJobs.map((job) => (
-                  <RecommendedJobCard
-                    key={job.id}
-                    job={job}
-                    isSaved={isJobSaved(job.id)}
-                    onToggleSave={handleSaveJob}
-                    matchedSkills={job.matchedSkills || []}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 shadow-sm max-w-lg mx-auto">
-                <div className="w-14 h-14 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <FiStar className="text-2xl" />
                 </div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1.5">
-                  No recommendations right now
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                  New job openings will appear here as employers publish new positions.
-                </p>
+
+                {jobsLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm animate-pulse space-y-4"
+                      >
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : recommendedJobs.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {recommendedJobs.map((job) => (
+                      <RecommendedJobCard
+                        key={job.id}
+                        job={job}
+                        isSaved={isJobSaved(job.id)}
+                        onToggleSave={handleSaveJob}
+                        matchedSkills={job.matchedSkills || []}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 shadow-sm max-w-lg mx-auto">
+                    <div className="w-14 h-14 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <FiStar className="text-2xl" />
+                    </div>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1.5">
+                      No recommendations right now
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                      New job openings will appear here as employers publish new positions.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
+            {/* Resumes Tab */}
+            {activeTab === "resumes" && (
+              <div className="space-y-8">
+                <ResumeManager
+                  resumes={resumes}
+                  loading={resumesLoading}
+                  error={resumesError}
+                  uploading={resumeUploading}
+                  actionLoadingId={actionLoadingId}
+                  onUpload={handleUploadResume}
+                  onSetDefault={handleSetDefaultResume}
+                  onDownload={handleDownloadResume}
+                  onDelete={handleDeleteResume}
+                  onRetry={fetchResumes}
+                />
 
-        {/* Resumes Tab */}
-        {activeTab === "resumes" && (
-          <div className="space-y-8">
-            <ResumeManager
-              resumes={resumes}
-              loading={resumesLoading}
-              error={resumesError}
-              uploading={resumeUploading}
-              actionLoadingId={actionLoadingId}
-              onUpload={handleUploadResume}
-              onSetDefault={handleSetDefaultResume}
-              onDownload={handleDownloadResume}
-              onDelete={handleDeleteResume}
-              onRetry={fetchResumes}
-            />
-
-            <ProfileIntegrityCard user={user} />
-          </div>
-        )}
-
+                <ProfileIntegrityCard user={user} />
+              </div>
+            )}
           </div>
         </main>
       </div>
+
+      {/* Accessible In-App Modal: Confirm Delete Resume */}
+      {resumeToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-4 text-red-600 dark:text-red-400">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/60 flex items-center justify-center flex-shrink-0">
+                <FiTrash2 className="text-lg" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                Delete Resume
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+              Are you sure you want to permanently delete{" "}
+              <strong className="text-gray-900 dark:text-white font-semibold">
+                "{resumeToDelete.name}"
+              </strong>
+              ? This file will be removed from your profile.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setResumeToDelete(null)}
+                disabled={actionLoadingId !== null}
+                className="px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteResume}
+                disabled={actionLoadingId !== null}
+                className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-xl transition flex items-center gap-2 shadow-sm"
+              >
+                {actionLoadingId === resumeToDelete.id && (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+                <span>Delete Resume</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Accessible In-App Modal: Confirm Withdraw Application */}
+      {applicationToWithdraw && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-4 text-amber-600 dark:text-amber-400">
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center flex-shrink-0">
+                <FiAlertCircle className="text-lg" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                Withdraw Application
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+              Are you sure you want to withdraw your application for{" "}
+              <strong className="text-gray-900 dark:text-white font-semibold">
+                "{applicationToWithdraw.job?.title || "this position"}"
+              </strong>{" "}
+              at{" "}
+              <strong className="text-gray-900 dark:text-white font-semibold">
+                {applicationToWithdraw.job?.company || "the company"}
+              </strong>
+              ? The employer will be notified that you are no longer in consideration.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setApplicationToWithdraw(null)}
+                disabled={actionLoadingId !== null}
+                className="px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition"
+              >
+                Keep Application
+              </button>
+              <button
+                type="button"
+                onClick={confirmWithdrawApplication}
+                disabled={actionLoadingId !== null}
+                className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 rounded-xl transition flex items-center gap-2 shadow-sm"
+              >
+                {actionLoadingId === applicationToWithdraw.id && (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+                <span>Withdraw Application</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

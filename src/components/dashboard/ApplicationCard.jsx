@@ -10,7 +10,6 @@ import {
   FiXCircle,
   FiStar,
   FiArrowRight,
-  FiFileText,
   FiDownload,
 } from "react-icons/fi";
 import { applicationService } from "../../services/applicationService";
@@ -80,7 +79,12 @@ const PIPELINE_STEPS = [
   { id: 5, label: "Decision" },
 ];
 
-const ApplicationCard = ({ application }) => {
+const ApplicationCard = ({
+  application,
+  onWithdraw,
+  onFeedback,
+  actionLoadingId = null,
+}) => {
   if (!application) return null;
 
   const currentStatus = application.status || "pending";
@@ -88,6 +92,7 @@ const ApplicationCard = ({ application }) => {
   const StatusIcon = statusInfo.icon;
   const jobId = application.jobId || application.job?.id;
   const isTerminalNegative = currentStatus === "rejected" || currentStatus === "withdrawn";
+  const canWithdraw = ["pending", "under_review", "shortlisted", "interview_scheduled"].includes(currentStatus);
 
   const handleDownloadResume = async () => {
     try {
@@ -95,8 +100,13 @@ const ApplicationCard = ({ application }) => {
         application.id,
         application.applicantName || "Application"
       );
+      if (typeof onFeedback === "function") {
+        onFeedback("success", "Application resume downloaded successfully.");
+      }
     } catch {
-      alert("Resume file could not be downloaded.");
+      if (typeof onFeedback === "function") {
+        onFeedback("error", "Application resume file could not be downloaded.");
+      }
     }
   };
 
@@ -222,8 +232,8 @@ const ApplicationCard = ({ application }) => {
       )}
 
       {/* Footer Actions */}
-      <div className="pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+      <div className="pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           {application.resumePath && (
             <button
               type="button"
@@ -231,7 +241,19 @@ const ApplicationCard = ({ application }) => {
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               <FiDownload className="text-xs" />
-              <span>Download Submitted Resume</span>
+              <span>Download Resume</span>
+            </button>
+          )}
+
+          {canWithdraw && onWithdraw && (
+            <button
+              type="button"
+              onClick={() => onWithdraw(application)}
+              disabled={actionLoadingId === application.id}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors disabled:opacity-50"
+            >
+              <FiXCircle className="text-xs" />
+              <span>Withdraw</span>
             </button>
           )}
         </div>

@@ -11,6 +11,7 @@ const {
   getApplicationsByEmail,
   verifyEmail,
   downloadApplicationResume,
+  withdrawApplication,
 } = require("../controllers/applicationController");
 
 // Protected routes - require authentication
@@ -25,7 +26,8 @@ router.post(
 ); // Submit application (supports multipart/form-data with resume file or JSON)
 router.get("/:id/resume", downloadApplicationResume); // Download resume for an application (Applicant, Owning Employer, or Admin)
 router.get("/email/:email", getApplicationsByEmail); // Get applications by email (for authenticated users)
-router.get("/verify/:token", verifyEmail); // Email verification (public - still needed for email links)
+router.get("/verify/:token", verifyEmail);
+router.put("/:id/withdraw", authorize("jobseeker", "user", "admin"), withdrawApplication); // Email verification (public - still needed for email links)
 
 // Employer/Admin only routes
 router.get("/", authorize("employer", "admin"), getApplications); // Get all applications

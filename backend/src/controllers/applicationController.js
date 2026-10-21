@@ -653,6 +653,18 @@ const getApplicationsByEmail = async (req, res) => {
       });
     }
 
+    // Authorization: only the applicant themselves or an admin can access applications for this email
+    if (
+      req.user &&
+      req.user.role !== "admin" &&
+      req.user.email?.toLowerCase() !== email.toLowerCase()
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: "You are not authorized to view applications for this email",
+      });
+    }
+
     const applications = await Application.findAll({
       where: { applicantEmail: email },
       include: [
@@ -800,6 +812,109 @@ const downloadApplicationResume = async (req, res) => {
   }
 };
 
+// @desc    Withdraw application (for candidate or admin)
+// @route   PUT /api/applications/:id/withdraw
+// @access  Private (Applicant or Admin)
+const withdrawApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const application = await Application.findByPk(id, {
+      include: [
+        {
+          model: Job,
+          as: "job",
+          attributes: ["id", "title", "company"],
+        },
+      ],
+    });
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        error: "Application not found",
+      });
+    }
+
+    const isAdmin = req.user.role === "admin";
+    const isApplicant =
+      application.userId === req.user.id ||
+      application.applicantEmail?.toLowerCase() === req.user.email?.toLowerCase();
+
+    if (!isAdmin && !isApplicant) {
+      return res.status(403).json({
+        success: false,
+        error: "You are not authorized to withdraw this application",
+      });
+    }
+
+    if (application.status === "withdrawn") {
+      return res.status(400).json({
+        success: false,
+        error: "This application has already been withdrawn",
+      });
+    }
+
+    if (application.status === "accepted" || application.status === "hired") {
+      return res.status(400).json({
+        success: false,
+        error: "Cannot withdraw an application that has already been accepted/hired",
+      });
+    }
+
+    if (application.status === "rejected") {
+      return res.status(400).json({
+        success: false,
+        error: "Cannot withdraw an application that has already been closed/rejected",
+      });
+    }
+
+    await sequelize.transaction(async (t) => {
+      await application.update(
+        {
+          status: "withdrawn",
+          lastUpdated: new Date(),
+        },
+        { transaction: t }
+      );
+
+      await Audit.create(
+        {
+          action: "APPLICATION_WITHDRAW",
+          targetUserId: application.userId || null,
+          performedBy: req.user.id,
+          details: `Candidate withdrew application #${application.id} for "${application.job?.title || "Job"}"`,
+          ipAddress: req.ip || req.connection?.remoteAddress,
+          userAgent: req.get("User-Agent"),
+        },
+        { transaction: t }
+      );
+    });
+
+    const updatedApplication = await Application.findByPk(id, {
+      include: [
+        {
+          model: Job,
+          as: "job",
+          attributes: ["id", "title", "company", "location", "status"],
+        },
+      ],
+    });
+
+    res.json({
+      success: true,
+      message: "Application withdrawn successfully",
+      data: updatedApplication,
+    });
+  } catch (error) {
+    console.error("Error withdrawing application:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to withdraw application",
+    });
+  }
+};
+
 module.exports = {
   getApplications,
   getApplication,
@@ -809,4 +924,5 @@ module.exports = {
   getApplicationsByEmail,
   verifyEmail,
   downloadApplicationResume,
+  withdrawApplication,
 };
