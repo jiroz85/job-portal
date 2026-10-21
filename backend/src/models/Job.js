@@ -103,9 +103,17 @@ const Job = sequelize.define(
       comment: "ID of the employer who created the job",
     },
   },
-  {
+    {
     timestamps: true,
     tableName: "jobs",
+    indexes: [
+      { fields: ["status"] },
+      { fields: ["employerId"] },
+      { fields: ["approvalStatus"] },
+      { fields: ["createdAt"] },
+      { fields: ["type"] },
+      { fields: ["status", "approvalStatus"] },
+    ],
   }
 );
 

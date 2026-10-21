@@ -11,6 +11,7 @@ try {
 
 const express = require("express");
 const cors = require("cors");
+const compression = require("compression");
 const { sequelize, createDatabaseIfNotExists } = require("./config/database");
 const jobRoutes = require("./routes/jobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
@@ -84,6 +85,7 @@ app.use(
     credentials: true,
   })
 );
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

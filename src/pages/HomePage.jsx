@@ -248,13 +248,31 @@ const HomePage = () => {
     return true;
   };
 
-  // Calculate real category counts from actual active jobs
-  const getCategoryCount = (categoryKeywords) => {
-    if (!publishedJobs || publishedJobs.length === 0) return 0;
-    return publishedJobs.filter((job) => {
-      const textToSearch = `${job.title || ""} ${job.requirements || ""} ${job.skills || ""} ${job.description || ""}`.toLowerCase();
-      return categoryKeywords.some((kw) => textToSearch.includes(kw));
-    }).length;
+  // Calculate real category counts from actual active jobs once per jobs list change
+  const categoryCounts = useMemo(() => {
+    if (!publishedJobs || publishedJobs.length === 0) return {};
+    const counts = {};
+    CATEGORIES_CONFIG.forEach((cat) => {
+      counts[cat.id] = publishedJobs.filter((job) => {
+        const textToSearch = `${job.title || ""} ${job.requirements || ""} ${job.skills || ""} ${job.description || ""}`.toLowerCase();
+        return cat.keywords.some((kw) => textToSearch.includes(kw));
+      }).length;
+    });
+    return counts;
+  }, [publishedJobs]);
+
+  const getCategoryCount = (categoryKeywords, catId) => {
+    if (catId && categoryCounts[catId] !== undefined) return categoryCounts[catId];
+    if (Array.isArray(categoryKeywords)) {
+      const found = CATEGORIES_CONFIG.find((c) => c.keywords === categoryKeywords);
+      if (found && categoryCounts[found.id] !== undefined) return categoryCounts[found.id];
+      if (!publishedJobs || publishedJobs.length === 0) return 0;
+      return publishedJobs.filter((job) => {
+        const textToSearch = `${job.title || ""} ${job.requirements || ""} ${job.skills || ""} ${job.description || ""}`.toLowerCase();
+        return categoryKeywords.some((kw) => textToSearch.includes(kw));
+      }).length;
+    }
+    return 0;
   };
 
   // Filter jobs based on active criteria

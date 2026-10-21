@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { jobService } from "../services/jobService";
 
 const JobContext = createContext();
@@ -16,39 +16,44 @@ export const JobProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch jobs from API on component mount
-  useEffect(() => {
-    fetchJobs();
-
-    // Set up periodic refresh every 30 seconds to sync with database
-    const interval = setInterval(fetchJobs, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) {
+        setLoading(true);
+      }
       const response = await jobService.getAllJobs();
       setJobs(response.data || response);
       setError(null);
     } catch (err) {
       console.error("Error fetching jobs:", err);
-      setError("Failed to fetch jobs");
-      // Don't use fallback data - only show real database data
-      setJobs([]);
+      if (!isBackground) {
+        setError("Failed to fetch jobs");
+        setJobs([]);
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
+
+  // Fetch jobs from API on component mount and periodically in background
+  useEffect(() => {
+    fetchJobs(false);
+
+    // Set up periodic refresh every 60 seconds to sync with database silently
+    const interval = setInterval(() => fetchJobs(true), 60000);
+
+    return () => clearInterval(interval);
+  }, [fetchJobs]);
 
   // Add a new job
   const addJob = async (jobData) => {
     try {
       const response = await jobService.createJob(jobData);
       const newJob = response.data || response;
-      // Refresh the entire jobs list from database
-      await fetchJobs();
+      // Refresh the entire jobs list from database in background
+      await fetchJobs(true);
       return { success: true, data: newJob };
     } catch (err) {
       console.error("Error adding job:", err);
@@ -64,8 +69,8 @@ export const JobProvider = ({ children }) => {
     try {
       const response = await jobService.updateJob(jobId, jobData);
       const updatedJob = response.data || response;
-      // Refresh the entire jobs list from database
-      await fetchJobs();
+      // Refresh the entire jobs list from database in background
+      await fetchJobs(true);
       return { success: true, data: updatedJob };
     } catch (err) {
       console.error("Error updating job:", err);
@@ -80,8 +85,8 @@ export const JobProvider = ({ children }) => {
   const deleteJob = async (jobId) => {
     try {
       await jobService.deleteJob(jobId);
-      // Refresh the entire jobs list from database
-      await fetchJobs();
+      // Refresh the entire jobs list from database in background
+      await fetchJobs(true);
       return { success: true };
     } catch (err) {
       console.error("Error deleting job:", err);
@@ -93,27 +98,27 @@ export const JobProvider = ({ children }) => {
   };
 
   // Get published jobs (for Browse Jobs page)
-  const getPublishedJobs = () => {
+  const getPublishedJobs = useCallback(() => {
     return jobs.filter(
       (job) =>
         (job.status === "Published" || job.status === "active") &&
         (job.approvalStatus === "approved" || !job.approvalStatus)
     );
-  };
+  }, [jobs]);
 
   // Get all jobs (for admin management)
-  const getAllJobs = () => {
+  const getAllJobs = useCallback(() => {
     return jobs;
-  };
+  }, [jobs]);
 
   // Get all active jobs (for general display across the app)
-  const getActiveJobs = () => {
+  const getActiveJobs = useCallback(() => {
     return jobs.filter(
       (job) =>
         (job.status === "Published" || job.status === "active") &&
         (job.approvalStatus === "approved" || !job.approvalStatus)
     );
-  };
+  }, [jobs]);
 
   // Approve a job
   const approveJob = (jobId) => {
