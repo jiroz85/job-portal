@@ -880,7 +880,7 @@ const withdrawApplication = async (req, res) => {
 
       await Audit.create(
         {
-          action: "APPLICATION_WITHDRAW",
+          action: "APPLICATION_UPDATE",
           targetUserId: application.userId || null,
           performedBy: req.user.id,
           details: `Candidate withdrew application #${application.id} for "${application.job?.title || "Job"}"`,
