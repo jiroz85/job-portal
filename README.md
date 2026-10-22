@@ -64,31 +64,28 @@ A full-stack job portal platform that connects job seekers, employers, and admin
 
 ```text
 job-portal/
-├── src/
-│   ├── components/
-│   │   ├── admin/
-│   │   ├── auth/
-│   │   ├── employer/
-│   │   ├── user/
-│   │   └── Notifications/
-│   ├── context/
-│   ├── hooks/
-│   ├── pages/
-│   ├── routes/
-│   ├── services/
-│   └── utils/
-├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   ├── controllers/
-│   │   ├── middleware/
-│   │   ├── migrations/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   └── seeders/
-│   └── scripts/
-└── public/
+├── src/                  # React & Vite frontend source code
+│   ├── components/       # Reusable UI & role-based components
+│   ├── context/          # State management contexts (Auth, Theme, Job, Application)
+│   ├── hooks/            # Custom React hooks
+│   ├── pages/            # Public pages & role-specific dashboards
+│   ├── services/         # API service integration layer
+│   └── utils/            # Helper utilities and API configuration
+├── backend/              # Node.js & Express REST API
+│   ├── src/              # Controllers, models, migrations, and routes
+│   └── scripts/          # Database seeding & automated security test suites
+├── docs/                 # Platform setup, deployment, & workflow documentation
+├── tests/                # Automated & integration test suites
+└── public/               # Static web assets, brand logos, and icons
 ```
+
+## 📚 Documentation & Guides
+
+Comprehensive guides are available in the [`docs/`](docs/) directory:
+- 🚀 [Deployment Guide](docs/DEPLOYMENT.md) — Complete setup for Vercel, Render, and production environments.
+- 🗄️ [Database Setup](docs/DATABASE_SETUP.md) — MySQL database creation, schema sync, and table setup.
+- 🏢 [Employer Workflow Guide](docs/EMPLOYER_WORKFLOW_GUIDE.md) — Step-by-step employer job posting & applicant tracking.
+- 👤 [User Management Setup](docs/USER_MANAGEMENT_SETUP.md) — Role-based access control and administrator operations.
 
 ## 🚀 Getting Started
 
