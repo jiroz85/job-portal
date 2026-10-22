@@ -13,6 +13,7 @@ const express = require("express");
 const cors = require("cors");
 const compression = require("compression");
 const { sequelize, createDatabaseIfNotExists } = require("./config/database");
+const { ensureResumePersistenceColumns } = require("./utils/dbResumePersistence");
 const jobRoutes = require("./routes/jobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -154,6 +155,7 @@ const initializeDatabase = async () => {
 
     await sequelize.sync(syncOptions);
     console.log("All tables were synchronized successfully.");
+    await ensureResumePersistenceColumns(sequelize);
   } catch (error) {
     console.error("Unable to initialize database:", error);
   }

@@ -49,6 +49,21 @@ const Application = sequelize.define(
       allowNull: true,
       comment: "Path to uploaded resume file",
     },
+    fileData: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
+      comment: "Base64 encoded file data for permanent cloud container persistence",
+    },
+    originalResumeName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: "Original file name uploaded by candidate",
+    },
+    mimeType: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: "MIME type of uploaded resume",
+    },
     coverLetter: {
       type: DataTypes.TEXT,
       allowNull: true,

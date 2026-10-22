@@ -23,6 +23,15 @@ exports.uploadResume = async (req, res) => {
     const existingCount = await Resume.count({ where: { userId } });
     const isDefault = existingCount === 0; // First resume becomes default automatically
 
+    let fileData = null;
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      try {
+        fileData = fs.readFileSync(req.file.path, { encoding: "base64" });
+      } catch (readErr) {
+        console.warn("Could not read uploaded file to base64:", readErr.message);
+      }
+    }
+
     const resume = await Resume.create({
       userId,
       originalName: req.file.originalname,
@@ -30,8 +39,30 @@ exports.uploadResume = async (req, res) => {
       filePath: req.file.filename,
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
+      fileData,
       isDefault,
     });
+
+    // Automatically link this uploaded resume to any past applications that are missing a resume file
+    try {
+      const Application = require("../models/Application");
+      await Application.update(
+        {
+          fileData,
+          originalResumeName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          resumePath: req.file.filename,
+        },
+        {
+          where: {
+            userId,
+            fileData: null,
+          },
+        }
+      );
+    } catch (backfillErr) {
+      console.warn("Could not backfill application resume:", backfillErr.message);
+    }
 
     // Update user's default resumePath
     if (isDefault) {
@@ -124,9 +155,32 @@ exports.downloadResume = async (req, res) => {
 
     const safeName = resume.originalName || "Resume.pdf";
 
+    // 1. Direct file download if physical file exists on disk
     if (storageService.fileExists(resume.fileName)) {
       const filePath = storageService.getFilePath(resume.fileName);
       return res.download(filePath, safeName);
+    }
+
+    // 2. Exact uploaded file data stored in database (survives container restarts)
+    if (resume.fileData) {
+      const fileBuffer = Buffer.from(resume.fileData, "base64");
+      const ext = path.extname(safeName).toLowerCase();
+      const contentType =
+        resume.mimeType ||
+        (ext === ".docx"
+          ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          : ext === ".doc"
+          ? "application/msword"
+          : "application/pdf");
+
+      try {
+        const filePath = storageService.getFilePath(resume.fileName);
+        fs.writeFileSync(filePath, fileBuffer);
+      } catch (cacheErr) {}
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
+      return res.send(fileBuffer);
     }
 
     // Physical file missing on disk (e.g., container restarted) -> generate fallback PDF

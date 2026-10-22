@@ -375,10 +375,25 @@ const createApplication = async (req, res) => {
     // Create verification token
     const verificationToken = require("crypto").randomBytes(32).toString("hex");
 
-    // Process resume attachment (either direct upload or reference to existing resume)
+    // Process resume attachment (stores exact file in database so it survives cloud restarts)
     let resumePath = null;
+    let fileData = null;
+    let originalResumeName = null;
+    let mimeType = null;
+
     if (req.file) {
       resumePath = req.file.filename;
+      originalResumeName = req.file.originalname;
+      mimeType = req.file.mimetype;
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        try {
+          fileData = fs.readFileSync(req.file.path, { encoding: "base64" });
+        } catch (readErr) {
+          console.warn("Could not read uploaded application resume:", readErr.message);
+        }
+      }
+
+      // Also create a resume record in the candidate's resumes table so it's in their manager
       try {
         await Resume.create({
           userId: authenticatedUser.id,
@@ -387,6 +402,7 @@ const createApplication = async (req, res) => {
           filePath: req.file.filename,
           fileSize: req.file.size,
           mimeType: req.file.mimetype,
+          fileData,
           isDefault: false,
         });
       } catch (resumeErr) {
@@ -398,9 +414,26 @@ const createApplication = async (req, res) => {
       });
       if (selectedResume) {
         resumePath = selectedResume.fileName;
+        fileData = selectedResume.fileData;
+        originalResumeName = selectedResume.originalName;
+        mimeType = selectedResume.mimeType;
       }
-    } else if (req.body.resumePath) {
-      resumePath = req.body.resumePath;
+    } else {
+      // Check if user has a default or existing resume in their resumes table
+      try {
+        const defaultResume = await Resume.findOne({
+          where: { userId: authenticatedUser.id },
+          order: [["isDefault", "DESC"], ["createdAt", "DESC"]],
+        });
+        if (defaultResume) {
+          resumePath = defaultResume.fileName;
+          fileData = defaultResume.fileData;
+          originalResumeName = defaultResume.originalName;
+          mimeType = defaultResume.mimeType;
+        }
+      } catch (dErr) {
+        console.warn("Could not fetch default resume:", dErr.message);
+      }
     }
 
     // Create application with verification data and user ID
@@ -410,6 +443,9 @@ const createApplication = async (req, res) => {
       applicantEmail,
       applicantPhone,
       resumePath,
+      fileData,
+      originalResumeName,
+      mimeType,
       coverLetter,
       experience,
       education,
@@ -786,8 +822,9 @@ const downloadApplicationResume = async (req, res) => {
       });
     }
 
-    const ext = path.extname(application.resumePath || "") || ".pdf";
-    const safeName = `${application.applicantName.replace(/[^a-zA-Z0-9_-]/g, "_")}_Resume${ext.toLowerCase().endsWith(".docx") || ext.toLowerCase().endsWith(".doc") ? ext : ".pdf"}`;
+    const safeName =
+      application.originalResumeName ||
+      `${application.applicantName.replace(/[^a-zA-Z0-9_-]/g, "_")}_Resume${path.extname(application.resumePath || "") || ".pdf"}`;
 
     // 1. Direct file download if physical file exists on disk
     if (application.resumePath && storageService.fileExists(application.resumePath)) {
@@ -795,7 +832,31 @@ const downloadApplicationResume = async (req, res) => {
       return res.download(filePath, safeName);
     }
 
-    // 2. Fallback to candidate uploaded resume in resumes table if physical file is available
+    // 2. Exact uploaded file data stored in Application database record
+    if (application.fileData) {
+      const fileBuffer = Buffer.from(application.fileData, "base64");
+      const ext = path.extname(safeName).toLowerCase();
+      const contentType =
+        application.mimeType ||
+        (ext === ".docx"
+          ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          : ext === ".doc"
+          ? "application/msword"
+          : "application/pdf");
+
+      try {
+        if (application.resumePath) {
+          const cachePath = storageService.getFilePath(application.resumePath);
+          fs.writeFileSync(cachePath, fileBuffer);
+        }
+      } catch (cacheErr) {}
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
+      return res.send(fileBuffer);
+    }
+
+    // 3. Exact uploaded file data stored in Candidate's Resumes table
     if (application.userId) {
       try {
         const userResumes = await Resume.findAll({
@@ -803,13 +864,38 @@ const downloadApplicationResume = async (req, res) => {
           order: [["isDefault", "DESC"], ["createdAt", "DESC"]],
         });
         for (const r of userResumes) {
+          // If file is physically on disk
           if (r.fileName && storageService.fileExists(r.fileName)) {
             const candPath = storageService.getFilePath(r.fileName);
-            const candExt = path.extname(r.originalName || r.fileName) || ".pdf";
-            return res.download(
-              candPath,
-              `${application.applicantName.replace(/[^a-zA-Z0-9_-]/g, "_")}_Resume${candExt}`
-            );
+            const candName = r.originalName || safeName;
+            return res.download(candPath, candName);
+          }
+          // If stored in database as base64
+          if (r.fileData) {
+            const fileBuffer = Buffer.from(r.fileData, "base64");
+            const candName = r.originalName || safeName;
+            const ext = path.extname(candName).toLowerCase();
+            const contentType =
+              r.mimeType ||
+              (ext === ".docx"
+                ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                : ext === ".doc"
+                ? "application/msword"
+                : "application/pdf");
+
+            // Backfill the application with this exact uploaded resume
+            try {
+              await application.update({
+                fileData: r.fileData,
+                originalResumeName: candName,
+                mimeType: contentType,
+                resumePath: r.fileName,
+              });
+            } catch (uErr) {}
+
+            res.setHeader("Content-Type", contentType);
+            res.setHeader("Content-Disposition", `attachment; filename="${candName}"`);
+            return res.send(fileBuffer);
           }
         }
       } catch (checkErr) {

@@ -43,6 +43,11 @@ const Resume = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    fileData: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
+      comment: "Base64 encoded file data for permanent cloud container persistence",
+    },
   },
   {
     timestamps: true,
