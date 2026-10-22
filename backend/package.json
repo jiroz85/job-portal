@@ -10,6 +10,7 @@
     "test:ownership": "node scripts/testJobOwnership.js",
     "test:resumes": "node scripts/testResumeUploads.js",
     "test:auth": "node scripts/testAuthSecurity.js",
+    "test:seeker": "node scripts/testJobSeekerDashboard.js",
     "migrate": "node src/scripts/run-all-migrations.js",
     "migrate:ownership": "node src/scripts/run-ownership-migration.js",
     "migrate:resumes": "node src/scripts/run-resumes-migration.js",

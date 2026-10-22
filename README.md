@@ -75,7 +75,6 @@ job-portal/
 │   ├── src/              # Controllers, models, migrations, and routes
 │   └── scripts/          # Database seeding & automated security test suites
 ├── docs/                 # Platform setup, deployment, & workflow documentation
-├── tests/                # Automated & integration test suites
 └── public/               # Static web assets, brand logos, and icons
 ```
 
