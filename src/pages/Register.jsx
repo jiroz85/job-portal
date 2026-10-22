@@ -160,7 +160,6 @@ const Register = () => {
                   >
                     <option value="jobseeker" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Job Seeker</option>
                     <option value="employer" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Employer</option>
-                    <option value="admin" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Admin</option>
                   </select>
                 </div>
               </div>
