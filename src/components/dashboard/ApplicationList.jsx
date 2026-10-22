@@ -41,6 +41,7 @@ const ApplicationList = ({
   applications = [],
   loading = false,
   error = null,
+  initialStatus = "all",
   onRetry,
   onExplore,
   onWithdraw,
@@ -48,7 +49,13 @@ const ApplicationList = ({
   actionLoadingId = null,
 }) => {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [prevInitialStatus, setPrevInitialStatus] = useState(initialStatus);
+  const [statusFilter, setStatusFilter] = useState(initialStatus || "all");
+
+  if (initialStatus !== prevInitialStatus) {
+    setPrevInitialStatus(initialStatus);
+    setStatusFilter(initialStatus || "all");
+  }
 
   const filteredApplications = useMemo(() => {
     return applications.filter((app) => {
@@ -107,7 +114,7 @@ const ApplicationList = ({
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
                 aria-label="Clear search"
               >
                 <FiX className="text-sm" />
@@ -120,7 +127,7 @@ const ApplicationList = ({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-750 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-750 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               aria-label="Filter by status"
             >
               {STATUS_FILTERS.map((filter) => (
@@ -144,7 +151,7 @@ const ApplicationList = ({
                 key={filter.id}
                 type="button"
                 onClick={() => setStatusFilter(filter.id)}
-                className={`px-2.5 py-1 rounded-lg font-medium text-xs transition-colors ${
+                className={`px-2.5 py-1 rounded-lg font-medium text-xs transition-colors cursor-pointer ${
                   isSelected
                     ? "bg-blue-600 text-white"
                     : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-650"
@@ -159,7 +166,7 @@ const ApplicationList = ({
             <button
               type="button"
               onClick={clearFilters}
-              className="text-xs text-red-600 dark:text-red-400 hover:underline font-semibold ml-auto"
+              className="text-xs text-red-600 dark:text-red-400 hover:underline ml-auto font-medium cursor-pointer"
             >
               Reset filters
             </button>
@@ -167,10 +174,10 @@ const ApplicationList = ({
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Listing Area */}
       {loading ? (
         <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
+          {[1, 2, 3].map((i) => (
             <ApplicationSkeleton key={i} />
           ))}
         </div>
@@ -185,71 +192,71 @@ const ApplicationList = ({
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition cursor-pointer"
             >
-              <FiRefreshCw className="text-xs" />
-              <span>Retry</span>
+              Try Again
             </button>
           )}
         </div>
-      ) : filteredApplications.length > 0 ? (
+      ) : filteredApplications.length === 0 ? (
+        <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 shadow-sm max-w-lg mx-auto">
+          <div className="w-14 h-14 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FiBriefcase className="text-2xl" />
+          </div>
+          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1.5">
+            {hasActiveFilters
+              ? "No applications match your filter"
+              : "No applications submitted yet"}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+            {hasActiveFilters
+              ? "Try adjusting your search keywords or resetting your status filter."
+              : "Discover verified opportunities matching your ambition and apply with your profile."}
+          </p>
+
+          <div className="flex items-center justify-center gap-3">
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-blue-600 hover:text-blue-700 border border-blue-200 dark:border-blue-800 transition cursor-pointer"
+              >
+                Clear Filters
+              </button>
+            ) : (
+              onExplore && (
+                <button
+                  type="button"
+                  onClick={onExplore}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm cursor-pointer"
+                >
+                  Explore Recommended Jobs
+                </button>
+              )
+            )}
+          </div>
+        </div>
+      ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 px-1">
             <span>
-              Showing {filteredApplications.length} of {applications.length}{" "}
-              application{applications.length === 1 ? "" : "s"}
+              Showing{" "}
+              <strong className="text-gray-800 dark:text-gray-200">
+                {filteredApplications.length}
+              </strong>{" "}
+              of {applications.length} applications
             </span>
           </div>
 
           {filteredApplications.map((app) => (
             <ApplicationCard
-              key={app.id}
+              key={app.id || app._id}
               application={app}
               onWithdraw={onWithdraw}
               onFeedback={onFeedback}
               actionLoadingId={actionLoadingId}
             />
           ))}
-        </div>
-      ) : applications.length === 0 ? (
-        <div className="text-center py-16 px-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 max-w-lg mx-auto shadow-sm">
-          <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-4">
-            <FiBriefcase className="text-2xl" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-            No applications submitted yet
-          </h3>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto leading-relaxed">
-            Find active career opportunities and submit your profile directly to
-            hiring managers.
-          </p>
-          {typeof onExplore === "function" && (
-            <button
-              type="button"
-              onClick={onExplore}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-colors"
-            >
-              <FiBriefcase className="text-xs" />
-              <span>Explore Opportunities</span>
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="text-center py-12 px-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-w-md mx-auto shadow-sm">
-          <FiSearch className="text-3xl text-gray-400 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
-            No applications match your filter
-          </h3>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
-            Try adjusting your search keywords or switching status filters.
-          </p>
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-semibold rounded-lg transition-colors"
-          >
-            Clear active filters
-          </button>
         </div>
       )}
     </div>

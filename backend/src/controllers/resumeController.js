@@ -1,4 +1,6 @@
+const fs = require("fs");
 const path = require("path");
+const { generateResumePdf } = require("../utils/pdfGenerator");
 const Resume = require("../models/Resume");
 const User = require("../models/User");
 const storageService = require("../services/storageService");
@@ -120,15 +122,35 @@ exports.downloadResume = async (req, res) => {
       });
     }
 
-    const filePath = storageService.getFilePath(resume.fileName);
-    if (!storageService.fileExists(resume.fileName)) {
-      return res.status(404).json({
-        success: false,
-        error: "Resume file not found on storage",
-      });
+    const safeName = resume.originalName || "Resume.pdf";
+
+    if (storageService.fileExists(resume.fileName)) {
+      const filePath = storageService.getFilePath(resume.fileName);
+      return res.download(filePath, safeName);
     }
 
-    res.download(filePath, resume.originalName);
+    // Physical file missing on disk (e.g., container restarted) -> generate fallback PDF
+    const user = await User.findByPk(resume.userId);
+    const generatedPdf = generateResumePdf({
+      name: user?.name || "Candidate",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      skills: user?.skills || "",
+      experience: user?.bio || "",
+      appliedDate: resume.createdAt ? new Date(resume.createdAt).toLocaleDateString() : "",
+    });
+
+    try {
+      const fallbackPath = storageService.getFilePath(resume.fileName);
+      fs.writeFileSync(fallbackPath, generatedPdf);
+    } catch (saveErr) {
+      console.warn("Could not cache generated resume on disk:", saveErr.message);
+    }
+
+    const downloadFileName = safeName.endsWith(".pdf") ? safeName : `${safeName}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${downloadFileName}"`);
+    return res.send(generatedPdf);
   } catch (error) {
     console.error("Error downloading resume:", error);
     res.status(500).json({

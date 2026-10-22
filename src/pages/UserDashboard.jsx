@@ -42,6 +42,15 @@ const UserDashboard = () => {
 
   const publishedJobs = getPublishedJobs();
   const [activeTab, setActiveTab] = useState("overview");
+  const [applicationStatusFilter, setApplicationStatusFilter] = useState("all");
+
+  const handleTabChange = useCallback((tabId, statusFilter = "all") => {
+    setActiveTab(tabId);
+    if (statusFilter) {
+      setApplicationStatusFilter(statusFilter);
+    }
+    setSidebarOpen(false);
+  }, []);
   const [realApplications, setRealApplications] = useState([]);
   const [applicationsLoading, setApplicationsLoading] = useState(true);
   const [applicationsError, setApplicationsError] = useState(null);
@@ -574,13 +583,13 @@ const UserDashboard = () => {
             <DashboardHeader
               user={user}
               stats={stats}
-              onTabChange={setActiveTab}
+              onTabChange={handleTabChange}
             />
 
             {/* Responsive Dashboard Tabs */}
             <DashboardTabs
               activeTab={activeTab}
-              onTabChange={setActiveTab}
+              onTabChange={handleTabChange}
               counts={{
                 applications: realApplications.length,
                 saved: getSavedJobsCount(),
@@ -923,8 +932,9 @@ const UserDashboard = () => {
                 applications={realApplications}
                 loading={applicationsLoading}
                 error={applicationsError}
+                initialStatus={applicationStatusFilter}
                 onRetry={fetchUserApplications}
-                onExplore={() => setActiveTab("recommended")}
+                onExplore={() => handleTabChange("recommended")}
                 onWithdraw={handleWithdrawApplication}
                 onFeedback={showFeedback}
                 actionLoadingId={actionLoadingId}
