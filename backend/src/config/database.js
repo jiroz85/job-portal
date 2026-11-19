@@ -48,10 +48,10 @@ if (process.env.DATABASE_URL) {
     logging: false,
     dialectOptions,
     pool: {
-      max: 5,
-      min: 0,
+      max: 10,
+      min: 1,
       acquire: 30000,
-      idle: 10000,
+      idle: 60000,
     },
   });
 } else {
@@ -66,10 +66,10 @@ if (process.env.DATABASE_URL) {
       logging: false,
       dialectOptions,
       pool: {
-        max: 5,
-        min: 0,
+        max: 10,
+        min: 1,
         acquire: 30000,
-        idle: 10000,
+        idle: 60000,
       },
     }
   );
